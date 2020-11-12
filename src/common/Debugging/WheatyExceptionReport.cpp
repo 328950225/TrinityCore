@@ -556,7 +556,7 @@ PEXCEPTION_POINTERS pExceptionInfo)
             Log(_T("\n\rCRITICAL ERROR.\n\r Couldn't initialize the symbol handler for process.\n\rError [%s].\n\r\n\r"),
                 ErrorMessage(GetLastError()));
         }
-
+#ifdef _M_X64
         if (pExceptionRecord->ExceptionCode == 0xE06D7363 && pExceptionRecord->NumberParameters >= 2)
         {
             PVOID exceptionObject = reinterpret_cast<PVOID>(pExceptionRecord->ExceptionInformation[1]);
@@ -630,6 +630,7 @@ PEXCEPTION_POINTERS pExceptionInfo)
                 }
             }
         }
+#endif		   
 
         CONTEXT trashableContext = *pCtx;
 

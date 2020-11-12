@@ -1,46 +1,157 @@
 version: 1.0.{build}
+configuration: Release
+build:
+  parallel: true
+  verbosity: detailed
 image: Visual Studio 2019
-clone_depth: 1
+shallow_clone: true
 init:
 - ps: ''
+- run: |
+           git config user.email "appveyor@build.bot" && git config user.name "AppVeyor"
+
+           git tag -a -m "AppVeyor build" " "
 environment:
-  BOOST_ROOT: C:\Libraries\boost_1_71_0
-  OPENSSL_ROOT_DIR: C:\OpenSSL-Win64
-build_script:
-- cmd: >-
-    chcp 65001
-    
-    git config user.email "appveyor@build.bot" && git config user.name "AppVeyor"
+  matrix:
+  - job_name: Windows x86
+    platform: Win32
+    BOOST_VER: x32-1.73
+    BOOST_ROOT: C:\Libraries\boost_1_73_0
+    BOOST_LIBS: C:\Libraries\boost_1_73_0\lib32-msvc-14.2
+    MYSQL_HOME: C:\mysql-5.7.31-win32
+    BITS: 32
+    OPENSSL_VERSION: 1_1_1h
+    OPENSSL_DIR: C:\OpenSSL
 
-    git tag -a -m "AppVeyor build" init
+  - job_name: Windows x64
+    platform: x64
+    BOOST_ROOT: C:\Libraries\boost_1_71_0
+    OPENSSL_ROOT_DIR: C:\OpenSSL-Win64
+for:
+- matrix:
+    only:
+    - job_name: Windows x86
+      platform: Win32
+  cache:
+    - C:\mysql-5.7.31-win32
+    - C:\OpenSSL
+    - ${env:APPVEYOR_BUILD_FOLDER}\src
+  build_script: 
+  - pwsh: | 
 
-    md build && cd build
+              echo ${env:APPVEYOR_BUILD_FOLDER}
 
-    cmake -G"Visual Studio 16 2019" -A x64 -DTOOLS=True -DWITH_WARNINGS:BOOL="0" -DELUNA:BOOL="1" -DCMAKE_CXX_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3 /GR /EHsc" -DCMAKE_C_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3" ..
+              if (Test-Path "C:\OpenSSL") {
+                  echo "using OpenSSL_1_1_1h from cache"
 
-    "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MsBuild.exe" /p:source-charset=utf-8 /nologo /m:2 /p:Configuration=RelWithDebInfo /p:Platform="X64" /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" "TrinityCore.sln"
+                  Get-ChildItem $env:OPENSSL_DIR
+              }
+              else
+              {
 
-    cd bin\RelWithDebInfo\
+                  mkdir -p C:\OpenSSL
 
-    copy "C:\Program Files\MySQL\MySQL Server 5.7\lib\libmysql.dll" libmysql.dll
+                  Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-${env:OPENSSL_VERSION}.exe" 
 
-    copy "%OPENSSL_ROOT_DIR%\ssleay32.dll" ssleay32.dll
+                  &.\Win${env:BITS}OpenSSL-${env:OPENSSL_VERSION}.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
+              }
 
-    copy "%OPENSSL_ROOT_DIR%\libeay32.dll" libeay32.dll
+              if (Test-Path "C:\mysql-5.7.31-win32") {
 
-    cd ..
+                  echo "using mysql-5.7.31-win32 from cache"
+              }
+              else
+              {
 
-    7z a -t7z TrinityCoreWin64SymbolsVS2019.7z .\RelWithDebInfo\* -mx=9 -ms=200m -mf -mhc -mhcf -mmt -r
+                  echo "downloading mysql-5.7.31-win32"
 
-    del /F /Q /S "RelWithDebInfo\*.pdb" > NUL
+                  Invoke-WebRequest "https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.31-win32.zip" -OutFile mysql-5.7.31-win32.zip
 
-    7z a -t7z TrinityCoreWin64VS2019.7z .\RelWithDebInfo\* -mx=9 -ms=200m -mf -mhc -mhcf -mmt -r
+                  echo "installing mysql-5.7.31-win32.zip"
 
-test: off
-artifacts:
-- path: build\bin\TrinityCoreWin64SymbolsVS2019.7z
-  name: TrinityCoreWin64SymbolsVS2019
+                  7z x -y mysql-5.7.31-win32.zip -oC:\
+              }
+                  $env:INCLUDE = "C:\mysql-5.7.31-win32\include;" + $env:INCLUDE
+                  $env:LIB     = "C:\mysql-5.7.31-win32\lib;" + $env:LIB
 
-- path: build\bin\TrinityCoreWin64VS2019.7z
-  name: TrinityCoreWin64VS2019
+                  Get-ChildItem C:\mysql-5.7.31-win32
 
+                  Get-ChildItem C:\Libraries
+
+                  Get-ChildItem C:\OpenSSL
+
+  - cmd: >-
+           chcp 65001
+
+           md build && cd build
+
+           cmake -G"Visual Studio 16 2019" -A win32 -DTOOLS=True -DWITH_WARNINGS:BOOL="0" -DELUNA:BOOL="1" -DCMAKE_CXX_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3 /GR /EHsc" -DCMAKE_C_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3" -DWITH_COREDEBUG=0 -DUSE_COREPCH=1 -DUSE_SCRIPTPCH=1 -DTOOLS=1 -DSERVERS=1 -DNOJEM=0 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3 /GR /EHsc" -DCMAKE_C_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3" -DCMAKE_INSTALL_PREFIX=check_install -DBUILD_TESTING=1 -DWITH_WARNINGS:BOOL="0" -DELUNA:BOOL="1" -DMYSQL_INCLUDE_DIR:PATH="C:\mysql-5.7.31-win32\include" -DMYSQL_LIBRARY:FILEPATH="C:\mysql-5.7.31-win32/lib/libmysql.lib" ..
+
+           "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MsBuild.exe" /p:source-charset=utf-8 /nologo /m:2 /p:Configuration=RelWithDebInfo /p:Platform="win32" /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" "TrinityCore.sln"
+
+           cd bin\RelWithDebInfo\
+
+           copy "C:\mysql-5.7.31-win32\bin\mysql.exe" mysql.exe
+
+           copy "C:\mysql-5.7.31-win32\lib\libmysql.dll" libmysql.dll
+
+           copy "%OPENSSL_DIR%\libssl-1_1.dll" libssl-1_1.dll
+
+           copy "%OPENSSL_DIR%\libcrypto-1_1.dll" libcrypto-1_1.dll
+
+           cd ..
+
+           7z a -t7z TrinityCoreWin32SymbolsVS2019.7z .\RelWithDebInfo\* -mx=9 -ms=200m -mf -mhc -mhcf -mmt -r
+
+           del /F /Q /S "RelWithDebInfo\*.pdb" > NUL
+
+           7z a -t7z TrinityCoreWin32VS2019.7z .\RelWithDebInfo\* -mx=9 -ms=200m -mf -mhc -mhcf -mmt -r
+
+  test: off
+  artifacts:
+  - path: build\bin\TrinityCoreWin32SymbolsVS2019.7z
+    name: TrinityCoreWin32SymbolsVS2019
+
+  - path: build\bin\TrinityCoreWin32VS2019.7z
+    name: TrinityCoreWin32VS2019
+
+  
+- matrix:
+    only:
+    - job_name: Windows x64
+      platform: x64
+  cache:
+    - C:\projects
+  build_script: 
+  - cmd: >-
+           chcp 65001
+
+           md build && cd build
+
+           cmake -G"Visual Studio 16 2019" -A x64 -DTOOLS=True -DWITH_WARNINGS:BOOL="0" -DELUNA:BOOL="1" -DCMAKE_CXX_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3 /GR /EHsc" -DCMAKE_C_FLAGS=" /utf-8 /DWIN32 /D_WINDOWS /W3" ..
+
+           "%programfiles(x86)%\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64\MsBuild.exe" /p:source-charset=utf-8 /nologo /m:2 /p:Configuration=RelWithDebInfo /p:Platform="X64" /verbosity:minimal /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" "TrinityCore.sln"
+
+           cd bin\RelWithDebInfo\
+
+           copy "C:\Program Files\MySQL\MySQL Server 5.7\lib\libmysql.dll" libmysql.dll
+
+           copy "%OPENSSL_ROOT_DIR%\ssleay32.dll" ssleay32.dll
+
+           copy "%OPENSSL_ROOT_DIR%\libeay32.dll" libeay32.dll
+
+           cd ..
+
+           7z a -t7z TrinityCoreWin64SymbolsVS2019.7z .\RelWithDebInfo\* -mx=9 -ms=200m -mf -mhc -mhcf -mmt -r
+
+           del /F /Q /S "RelWithDebInfo\*.pdb" > NUL
+
+           7z a -t7z TrinityCoreWin64VS2019.7z .\RelWithDebInfo\* -mx=9 -ms=200m -mf -mhc -mhcf -mmt -r
+
+  test: off
+  artifacts:
+  - path: build\bin\TrinityCoreWin64SymbolsVS2019.7z
+    name: TrinityCoreWin64SymbolsVS2019
+
+  - path: build\bin\TrinityCoreWin64VS2019.7z
+    name: TrinityCoreWin64VS2019
