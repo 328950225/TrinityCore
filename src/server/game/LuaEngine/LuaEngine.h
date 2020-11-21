@@ -16,6 +16,7 @@
 #ifndef TRINITY
 #include "Player.h"
 #endif
+#include "InstanceScript.h"
 #include "Weather.h"
 #include "World.h"
 #include "Hooks.h"
@@ -297,13 +298,13 @@ public:
     /*
      * Returns `true` if Eluna has instance data for `map`.
      */
-    bool HasInstanceData(Map const* map);
+    bool HasInstanceData(InstanceMap* map);
 
     /*
      * Use the top element of the stack as the instance data table for `map`,
      *   then pops it off the stack.
      */
-    void CreateInstanceData(Map const* map);
+    void CreateInstanceData(InstanceMap* map);
 
     /*
      * Retrieve the instance data for the `Map` scripted by `ai` and push it
@@ -338,7 +339,7 @@ public:
     static ElunaObject* CHECKTYPE(lua_State* luastate, int narg, const char *tname, bool error = true);
 
     CreatureAI* GetAI(Creature* creature);
-    InstanceData* GetInstanceData(Map* map);
+    InstanceData* GetInstanceData(InstanceMap* map);
     void FreeInstanceId(uint32 instanceId);
 
     /* Custom */

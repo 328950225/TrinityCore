@@ -61,7 +61,7 @@ private:
     std::string lastSaveData;
 
 public:
-    ElunaInstanceAI(Map* map) : InstanceData(map)
+    ElunaInstanceAI(InstanceMap* map) : InstanceData(map)
     {
     }
 
