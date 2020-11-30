@@ -9503,17 +9503,17 @@ void bot_ai::ApplyItemsSpells()
 
     ApplyItemSetBonuses(nullptr, true); //item set bonuses
 }
-
+//stats bonuses from equipment
 inline float bot_ai::_getBotStat(uint8 slot, uint8 stat) const
 {
-    return float(static_cast<BotStat>(_stats[slot])[stat]);
+       return float(_stats[slot][stat]);
 }
 
 inline float bot_ai::_getTotalBotStat(uint8 stat) const
 {
     int32 value = 0;
     for (uint8 slot = BOT_SLOT_MAINHAND; slot != BOT_INVENTORY_SIZE; ++slot)
-        value += static_cast<BotStat>(_stats[slot])[stat];
+        value += _stats[slot][stat];
 
     uint8 lvl = me->GetLevel();
     float fval = float(value);
@@ -10965,41 +10965,43 @@ void bot_ai::DamageDealt(Unit* victim, uint32& damage, DamageEffectType /*damage
         ResetChase(victim);
 }
 //This function is called after Spell::SendSpellCooldown() and Spell::DoAllEffects...() call
-void bot_ai::OnBotSpellGo(Spell const* spell)
+void bot_ai::OnBotSpellGo(Spell const* spell, bool ok)
 {
     SpellInfo const* curInfo = spell->GetSpellInfo();
-
-    //Set cooldown
-    if (!curInfo->IsCooldownStartedOnEvent() && !curInfo->IsPassive())
+    if (ok)
     {
-        uint32 rec = curInfo->RecoveryTime;
-        uint32 catrec = curInfo->CategoryRecoveryTime;
+        //Set cooldown
+        if (!curInfo->IsCooldownStartedOnEvent() && !curInfo->IsPassive())
+        {
+            uint32 rec = curInfo->RecoveryTime;
+            uint32 catrec = curInfo->CategoryRecoveryTime;
 
-        if (rec > 0)
-            ApplyBotSpellCooldownMods(curInfo, rec);
-        if (catrec > 0 && !(curInfo->AttributesEx6 & SPELL_ATTR6_IGNORE_CATEGORY_COOLDOWN_MODS))
-            ApplyBotSpellCategoryCooldownMods(curInfo, catrec);
+            if (rec > 0)
+                ApplyBotSpellCooldownMods(curInfo, rec);
+            if (catrec > 0 && !(curInfo->AttributesEx6 & SPELL_ATTR6_IGNORE_CATEGORY_COOLDOWN_MODS))
+                ApplyBotSpellCategoryCooldownMods(curInfo, catrec);
 
-        SetSpellCooldown(curInfo->GetFirstRankSpell()->Id, rec);
-        SetSpellCategoryCooldown(curInfo->GetFirstRankSpell(), catrec);
-    }
+            SetSpellCooldown(curInfo->GetFirstRankSpell()->Id, rec);
+            SetSpellCategoryCooldown(curInfo->GetFirstRankSpell(), catrec);
+        }
 
-    if (curInfo->Id == PVPTRINKET)
-        SetSpellCooldown(PVPTRINKET, 120000);
-    if (IsPotionSpell(curInfo->Id))
-        StartPotionTimer();
-    if (curInfo->Id == ACTIVATE_SPEC)
-        SetSpec(_newspec);
+        if (curInfo->Id == PVPTRINKET)
+            SetSpellCooldown(PVPTRINKET, 120000);
+        if (IsPotionSpell(curInfo->Id))
+            StartPotionTimer();
+        if (curInfo->Id == ACTIVATE_SPEC)
+            SetSpec(_newspec);
 
     OnClassSpellGo(curInfo);
+    }
 
     if (HasBotCommandState(BOT_COMMAND_ISSUED_ORDER) &&
         !_orders.empty() && _orders.front()->_type == BOT_ORDER_SPELLCAST &&
         _orders.front()->params.spellCastParams.baseSpell == curInfo->GetFirstRankSpell()->Id)
     {
         if (DEBUG_BOT_ORDERS)
-            TC_LOG_ERROR("entities.player", "doCast(): ordered spell %u by %s was successful!",
-                curInfo->Id, me->GetName().c_str());
+            TC_LOG_ERROR("entities.player", "doCast(): ordered spell %u by %s was %s!",
+                curInfo->Id, me->GetName().c_str(), ok ? "successful" : "unsuccessful");
         CompleteOrder(_orders.front());
     }
 }
@@ -11281,6 +11283,9 @@ void bot_ai::_ProcessOrders()
         {
             if (CCed(me))
                 break;
+
+            SetBotCommandState(BOT_COMMAND_ISSUED_ORDER);
+
             ObjectGuid guid(order->params.spellCastParams.targetGuid);
             if (guid == me->GetGUID())
                 target = me;
@@ -11310,7 +11315,6 @@ void bot_ai::_ProcessOrders()
             if (IsCasting())
                 me->InterruptNonMeleeSpells(false);
 
-            SetBotCommandState(BOT_COMMAND_ISSUED_ORDER);
             doCast(target, _spells[order->params.spellCastParams.baseSpell]->spellId);
             break;
         }

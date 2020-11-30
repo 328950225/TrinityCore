@@ -163,7 +163,7 @@ class bot_ai : public CreatureAI
         void CastBotItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx);
         void CastBotItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx, Item* item, ItemTemplate const* proto);
         void OnBotSpellInterrupted(SpellSchoolMask schoolMask, uint32 unTimeMs);
-        void OnBotSpellGo(Spell const* spell);
+        void OnBotSpellGo(Spell const* spell, bool ok = true);
         virtual void OnClassSpellGo(SpellInfo const* /*spell*/) {}
 
         static void InitBotCustomSpells();
@@ -507,8 +507,8 @@ class bot_ai : public CreatureAI
             BotSpell(BotSpell const&);
         };
 
-        typedef std::unordered_map<uint32 /*stat*/, int32 /*statvalue*/> BotStat;
-        BotStat _stats[BOT_INVENTORY_SIZE];
+        typedef int32 ItemStatBonus[MAX_BOT_ITEM_MOD];
+        ItemStatBonus _stats[BOT_INVENTORY_SIZE];
         Item* _equips[BOT_INVENTORY_SIZE];
 
     public:

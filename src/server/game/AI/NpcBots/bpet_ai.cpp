@@ -2004,8 +2004,11 @@ void bot_pet_ai::IsSummonedBy(WorldObject* summoner)
     SetPetStats(true);
 }
 //This function is called after Spell::SendSpellCooldown() and Spell::DoAllEffects...() call
-void bot_pet_ai::OnBotPetSpellGo(Spell const* spell)
+void bot_pet_ai::OnBotPetSpellGo(Spell const* spell, bool ok)
 {
+    if (!ok)
+        return;
+
     SpellInfo const* curInfo = spell->GetSpellInfo();
 
     //Set cooldown
@@ -2168,12 +2171,40 @@ bool bot_pet_ai::GlobalUpdate(uint32 diff)
         if (me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_IN_COMBAT))
             me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_IN_COMBAT);
     }
+    //update movement orders if near owner, otherwise get close
+    bool closeToOwner = false;
+    if (!opponent && !HasBotCommandState(BOT_COMMAND_STAY) && !IsCasting())
+    {
+        _calculatePos(pos);
+        if (!petOwner->isMoving())
+        {
+            if (me->GetExactDist(&pos) > 5.f)
+                SetBotCommandState(BOT_COMMAND_FOLLOW, true, &pos);
+            else
+                closeToOwner = true;
+        }
+        else
+        {
+            Position destPos;
+            me->GetMotionMaster()->GetDestination(destPos.m_positionX, destPos.m_positionY, destPos.m_positionZ);
+            if (destPos.GetExactDist(&pos) > 5.f)
+                SetBotCommandState(BOT_COMMAND_FOLLOW, true, &pos);
+            else
+                closeToOwner = true;
+        }
+    }
+    if (closeToOwner || me->IsInCombat())
+    {
+        uint8 st = (petOwner->GetBotAI()->GetBotCommandState() & BOT_COMMAND_MASK_UNMOVING);
+        if (st && GetBotCommandState() != st)
+        {
+            SetBotCommandState(st);
+            return !(st & BOT_COMMAND_FULLSTOP);
+        }
+    }
 
     if (HasBotCommandState(BOT_COMMAND_FULLSTOP))
         return false;
-
-    if (HasBotCommandState(BOT_COMMAND_STAY) && !petOwner->GetBotAI()->HasBotCommandState(BOT_COMMAND_STAY))
-        RemoveBotCommandState(BOT_COMMAND_STAY);
 
     CheckAttackState();
 
@@ -2213,41 +2244,6 @@ bool bot_pet_ai::GlobalUpdate(uint32 diff)
         return false;
 
     GenerateRand();
-
-    bool closeToOwner = false;
-    if (!opponent && !HasBotCommandState(BOT_COMMAND_STAY))
-    {
-        if (!IsCasting())
-        {
-            _calculatePos(pos);
-            if (!petOwner->isMoving())
-            {
-                if (me->GetExactDist(&pos) > 5.f)
-                    SetBotCommandState(BOT_COMMAND_FOLLOW, true, &pos);
-                else
-                    closeToOwner = true;
-            }
-            else
-            {
-                Position destPos;
-                me->GetMotionMaster()->GetDestination(destPos.m_positionX, destPos.m_positionY, destPos.m_positionZ);
-                if (destPos.GetExactDist(&pos) > 5.f)
-                    SetBotCommandState(BOT_COMMAND_FOLLOW, true, &pos);
-                else
-                    closeToOwner = true;
-            }
-        }
-    }
-
-    if (closeToOwner || me->IsInCombat())
-    {
-        uint8 st = (petOwner->GetBotAI()->GetBotCommandState() & BOT_COMMAND_MASK_UNMOVING);
-        if (st && GetBotCommandState() != st)
-        {
-            SetBotCommandState(st);
-            return !(st & BOT_COMMAND_FULLSTOP);
-        }
-    }
 
     return true;
 }

@@ -49,7 +49,7 @@ class bot_pet_ai : public CreatureAI
         //virtual void SetAIMiscValue(uint32 /*data*/, uint32 /*value*/) {}
 
         void OnBotPetSpellInterrupted(SpellSchoolMask schoolMask, uint32 unTimeMs);
-        void OnBotPetSpellGo(Spell const* spell);
+        void OnBotPetSpellGo(Spell const* spell, bool ok = true);
         virtual void OnPetClassSpellGo(SpellInfo const* /*spellInfo*/) {}
 
         bool IsSpellReady(uint32 basespell, uint32 diff, bool checkGCD = true) const;

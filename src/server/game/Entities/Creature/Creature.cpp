@@ -3744,12 +3744,12 @@ void Creature::CastCreatureItemCombatSpell(Unit* target, WeaponAttackType attTyp
         bot_AI->CastBotItemCombatSpell(target, attType, procVictim, procEx);
 }
 
-void Creature::OnSpellGo(Spell const* spell)
+void Creature::OnSpellGo(Spell const* spell, bool ok)
 {
     if (bot_AI)
-        bot_AI->OnBotSpellGo(spell);
+        bot_AI->OnBotSpellGo(spell, ok);
     else if (bot_pet_AI)
-        bot_pet_AI->OnBotPetSpellGo(spell);
+        bot_pet_AI->OnBotPetSpellGo(spell, ok);
 }
 
 bool Creature::HasSpellCooldown(uint32 spell_id) const

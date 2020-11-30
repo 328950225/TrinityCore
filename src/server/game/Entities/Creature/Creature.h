@@ -419,7 +419,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         void CastCreatureItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx);
 
-        void OnSpellGo(Spell const* spell);
+        void OnSpellGo(Spell const* spell, bool ok = true);
         bool HasSpellCooldown(uint32 spellId) const;
         void AddBotSpellCooldown(uint32 spellId, uint32 cooldown);
         void ReleaseBotSpellCooldown(uint32 spellId);

@@ -3333,6 +3333,11 @@ void Spell::_cast(bool skipCheck)
             SendCastResult(res, p1, p2);
             SendInterrupted(0);
 
+            //npcbot - hook for spellcast finish (unsuccessful)
+            if (m_caster->GetTypeId() == TYPEID_UNIT)
+                m_caster->ToCreature()->OnSpellGo(this, false);
+            //end npcbot
+
             if (modOwner)
                 modOwner->SetSpellModTakingSpell(this, false);
 

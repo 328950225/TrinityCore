@@ -182,7 +182,8 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo) const
         case CONDITION_REPUTATION_RANK:
         {
             //npcbot
-            if (object->GetTypeId() == TYPEID_UNIT && !object->ToCreature()->IsFreeBot())
+            if (object->GetTypeId() == TYPEID_UNIT && object->ToCreature()->IsNPCBot() &&
+                object->ToCreature()->GetBotAI() && !object->ToCreature()->IsFreeBot())
             {
                 if (FactionEntry const* faction = sFactionStore.LookupEntry(ConditionValue1))
                     condMeets = (ConditionValue2 & (1 << object->ToCreature()->GetBotOwner()->GetReputationMgr().GetRank(faction)));
@@ -210,7 +211,8 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo) const
         case CONDITION_TEAM:
         {
             //npcbot
-            if (object->GetTypeId() == TYPEID_UNIT && !object->ToCreature()->IsFreeBot())
+            if (object->GetTypeId() == TYPEID_UNIT && object->ToCreature()->IsNPCBot() &&
+                object->ToCreature()->GetBotAI() && !object->ToCreature()->IsFreeBot())
                 condMeets = object->ToCreature()->GetBotOwner()->GetTeam() == ConditionValue1;
             else
             //end npcbot
