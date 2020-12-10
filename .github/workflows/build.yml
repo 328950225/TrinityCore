@@ -64,7 +64,7 @@ jobs:
          OPENSSL_DIR: C:\OpenSSL
          MYSQL_HOME: C:\mysql-5.7.31-win32
          Boost_DIR: C:\boost
-         OPENSSL_VERSION: 1_1_1h
+         OPENSSL_VERSION: 1_1_1i
          BITS: 32
     steps:
     - name: Cache
