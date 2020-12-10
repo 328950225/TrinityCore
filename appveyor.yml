@@ -20,7 +20,7 @@ environment:
     BOOST_LIBS: C:\Libraries\boost_1_73_0\lib32-msvc-14.2
     MYSQL_HOME: C:\mysql-5.7.31-win32
     BITS: 32
-    OPENSSL_VERSION: 1_1_1h
+    OPENSSL_VERSION: 1_1_1i
     OPENSSL_DIR: C:\OpenSSL
 
   - job_name: Windows x64
@@ -42,7 +42,7 @@ for:
               echo ${env:APPVEYOR_BUILD_FOLDER}
 
               if (Test-Path "C:\OpenSSL") {
-                  echo "using OpenSSL_1_1_1h from cache"
+                  echo "using OpenSSL_1_1_1i from cache"
 
                   Get-ChildItem $env:OPENSSL_DIR
               }
