@@ -253,6 +253,15 @@ uint8 BotMgr::GetNpcBotSlotByRole(uint16 roles, Creature const* bot) const
     return 1;
 }
 
+uint32 BotMgr::GetAllNpcBotsClassMask() const
+{
+    uint32 classMask = 0;
+    for (BotMap::const_iterator itr = _bots.begin(); itr != _bots.end(); ++itr)
+        classMask |= (1 << (itr->second->GetBotClass() - 1));
+
+    return classMask;
+}
+
 bool BotMgr::IsNpcBotModEnabled()
 {
     return _enableNpcBots;

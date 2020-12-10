@@ -95,6 +95,7 @@ class BotMgr
         uint8 GetNpcBotsCount() const;
         uint8 GetNpcBotsCountByRole(uint16 roles) const;
         uint8 GetNpcBotSlotByRole(uint16 roles, Creature const* bot) const;
+        uint32 GetAllNpcBotsClassMask() const;
         static uint8 GetMaxNpcBots();
         static uint8 GetNpcBotXpReduction();
         static int32 GetBotInfoPacketsLimit();
