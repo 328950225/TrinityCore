@@ -493,7 +493,7 @@ void bot_ai::ResetBotAI(uint8 resetType)
     me->SetUInt32Value(UNIT_FIELD_FLAGS_2, me->GetCreatureTemplate()->unit_flags2);
 
     if (resetType == BOTAI_RESET_DISMISS)
-        EnableAllSpells();
+        // EnableAllSpells(); //在重置或remove 后防止NPC技能配置被清空,禁用
 
     //me->IsAIEnabled = true;
     canUpdate = true;
