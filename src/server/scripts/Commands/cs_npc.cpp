@@ -624,6 +624,17 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+        
+		//npcbot
+        CreatureTemplate const* ct = sObjectMgr->GetCreatureTemplate(data->id);
+        ASSERT(ct);
+        if ((ct->flags_extra & (CREATURE_FLAG_EXTRA_NPCBOT | CREATURE_FLAG_EXTRA_NPCBOT_PET)) != 0)
+        {
+            handler->PSendSysMessage("creature %u (id %u) is a part of NPCBots mod. Use '.npcbot move' instead", lowguid, data->id);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+        //end npcbot
 
         // update position in memory
         sObjectMgr->RemoveCreatureFromGrid(lowguid, data);

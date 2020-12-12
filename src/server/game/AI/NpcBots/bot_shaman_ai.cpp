@@ -1522,7 +1522,7 @@ public:
                 pctbonus += 0.1f;
             //Nature's Blessing: 15% of Intellect to healing
             if ((_spec == BOT_SPEC_SHAMAN_RESTORATION) && lvl >= 45)
-                flat_mod += GetTotalBotStat(STAT_INTELLECT) * 0.15f * me->CalculateDefaultCoefficient(spellInfo, damagetype) * stack * 1.88f * me->CalculateSpellpowerCoefficientLevelPenalty(spellInfo) * stack;
+                flat_mod += GetTotalBotStat(BOT_STAT_MOD_INTELLECT) * 0.15f * me->CalculateDefaultCoefficient(spellInfo, damagetype) * stack * 1.88f * me->CalculateSpellpowerCoefficientLevelPenalty(spellInfo) * stack;
             //Improved Chain Heal: 20% bonus healing for Chain Heal
             if ((_spec == BOT_SPEC_SHAMAN_RESTORATION) && lvl >= 45 && spellId == GetSpell(CHAIN_HEAL_1))
                 pctbonus += 0.2f;

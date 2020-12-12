@@ -38,7 +38,7 @@ enum WarlockBaseSpells
     SHADOWFLAME_1                       = 47897,
     SHADOWFURY_1                        = 30283,
     HAUNT_1                             = 48181,
-    UNSTABLE_AFFLICTION_1               = 30108,//NI
+    UNSTABLE_AFFLICTION_1               = 30108,
     FEAR_1                              = 5782,
     HOWL_OF_TERROR_1                    = 5484,
     DEATH_COIL_1                        = 6789,
@@ -90,6 +90,7 @@ enum WarlockPassives
 
     //Special
     GLYPH_CORRUPTION                    = 56218,
+	GLYPH_LIFE_TAP                      = 63320,
     GLYPH_FEAR                          = 56244,
     GLYPH_QUICK_DECAY                   = 70947,
     GLYPH_CONFLAGRATE                   = 56235,
@@ -107,6 +108,7 @@ enum WarlockSpecial
     MOLTEN_CORE_BUFF                    = 71165,//rank 3
     DECIMATION_BUFF                     = 63167,//rank 2
     CHAOTIC_MIND_BUFF                   = 61189,// "Soul Fire!" 6 sec duration Soul Fire instant cast
+	GLYPH_LIFE_TAP_BUFF                 = 63321,//"Life Tap"
 
     SHADOW_MASTERY_DEBUFF               = 17800,// Improved Shadow Bolt talent debuff
 
@@ -129,6 +131,41 @@ enum WarlockSpecial
     SOUL_LINK_PET                       = 25228,//split effect lvl 20 req
     FEL_SYNERGY_HEAL                    = 54181,
     LIFE_TAP_ENERGIZE_PET               = 32553
+};
+
+enum CurseType : uint32
+{
+    CURSE_NONE                  = 0,
+    CURSE_WEAKNESS              = 1,
+    CURSE_AGONY                 = 2,
+    CURSE_DOOM                  = 3,
+    CURSE_ELEMENTS              = 4,
+    CURSE_TONGUES               = 5,
+    CURSE_EXHAUSTION            = 6,
+
+    CURSE_FLAG_MY_WEAKNESS,
+    CURSE_FLAG_MY_AGONY,
+    CURSE_FLAG_MY_DOOM,
+    CURSE_FLAG_MY_ELEMENTS,
+    CURSE_FLAG_MY_TONGUES,
+    CURSE_FLAG_MY_EXHAUSTION,
+
+    CURSE_MASK_WEAKNESS         = (1 << CURSE_WEAKNESS),
+    CURSE_MASK_AGONY            = (1 << CURSE_AGONY),
+    CURSE_MASK_DOOM             = (1 << CURSE_DOOM),
+    CURSE_MASK_ELEMENTS         = (1 << CURSE_ELEMENTS),
+    CURSE_MASK_TONGUES          = (1 << CURSE_TONGUES),
+    CURSE_MASK_EXHAUSTION       = (1 << CURSE_EXHAUSTION),
+
+    CURSE_MASK_MY_WEAKNESS      = (1 << CURSE_FLAG_MY_WEAKNESS),
+    CURSE_MASK_MY_AGONY         = (1 << CURSE_FLAG_MY_AGONY),
+    CURSE_MASK_MY_DOOM          = (1 << CURSE_FLAG_MY_DOOM),
+    CURSE_MASK_MY_ELEMENTS      = (1 << CURSE_FLAG_MY_ELEMENTS),
+    CURSE_MASK_MY_TONGUES       = (1 << CURSE_FLAG_MY_TONGUES),
+    CURSE_MASK_MY_EXHAUSTION    = (1 << CURSE_FLAG_MY_EXHAUSTION),
+
+    CURSE_MASK_MY_CURSE_ANY     = (CURSE_MASK_MY_WEAKNESS | CURSE_MASK_MY_AGONY | CURSE_MASK_MY_DOOM | \
+                                CURSE_MASK_MY_ELEMENTS | CURSE_MASK_MY_TONGUES | CURSE_MASK_MY_EXHAUSTION)
 };
 
 static const uint32 Warlock_spells_damage_arr[] =
@@ -332,15 +369,6 @@ public:
             fearTimer = std::max<uint32>(fearTimer, 1000);
         }
 
-        //uint8 Afflicted(Unit* target) const
-        //{
-        //    if (!target || target->isDead()) return 0;
-        //    bool aff = HasAuraName(target, UNSTABLE_AFFLICTION_1, me->GetGUID());
-        //    bool imm = HasAuraName(target, IMMOLATE_1, me->GetGUID());
-        //    if (imm) return 1;
-        //    if (aff) return 2;
-        //    return 0;
-        //}
 
         void CheckFear(uint32 diff)
         {
@@ -717,6 +745,26 @@ public:
                     return;
             }
 
+            //Life Tap / Dark Pact for Glyph of Life Tap
+            if (lifeTapCheckTimer <= diff && HasRole(BOT_ROLE_DPS) && Rand() < 75)
+            {
+                lifeTapCheckTimer = 10000;
+                if (!me->GetAuraEffect(SPELL_AURA_MOD_SPELL_DAMAGE_OF_STAT_PERCENT, SPELLFAMILY_WARLOCK, 208, 0))
+                {
+                    //doesn't work: wrong spell proc entry 10.12.2020
+                    //if (IsSpellReady(DARK_PACT_1, diff) && botPet && GetManaPCT(me) > 70)
+                    //{
+                    //    if (doCast(me, GetSpell(DARK_PACT_1)))
+                    //        return;
+                    //}
+                    //else
+                    if (IsSpellReady(LIFE_TAP_1, diff) && GetHealthPCT(me) > 30)
+                    {
+                        if (doCast(me, GetSpell(LIFE_TAP_1)))
+                            return;
+                    }
+                }
+            }
             //Shadowfury
             if (IsSpellReady(SHADOWFURY_1, diff) && HasRole(BOT_ROLE_DPS) && !CCed(opponent, true) && Rand() < 55)
             {
@@ -753,7 +801,8 @@ public:
                     return;
             }
             //Rain of Fire
-            if (IsSpellReady(RAIN_OF_FIRE_1, diff) && HasRole(BOT_ROLE_DPS) && !JumpingOrFalling() && Rand() < 45)
+            if (IsSpellReady(RAIN_OF_FIRE_1, diff) && HasRole(BOT_ROLE_DPS) && !JumpingOrFalling() && Rand() < 45 &&
+                (GetSpec() != BOT_SPEC_WARLOCK_AFFLICTION || !GetSpell(SEED_OF_CORRUPTION_1)))
             {
                 if (Unit* raintarget = FindAOETarget(CalcSpellMaxRange(RAIN_OF_FIRE_1)))
                 {
@@ -763,6 +812,7 @@ public:
             }
             //Searing Pain (PvP)
             if (longCasted && IsSpellReady(SEARING_PAIN_1, diff) && HasRole(BOT_ROLE_DPS) &&
+			    GetSpec() != BOT_SPEC_WARLOCK_AFFLICTION &&
                 opponent->GetTypeId() == TYPEID_PLAYER && Rand() < 35 && dist < CalcSpellMaxRange(SEARING_PAIN_1))
             {
                 if (doCast(opponent, GetSpell(SEARING_PAIN_1)))
@@ -777,51 +827,45 @@ public:
                     return;
             }
             //Curse, checking affliction range
-            if (GetSpellCooldown(CURSE_OF_WEAKNESS_1) <= diff && Rand() < 25 &&
-                dist < CalcSpellMaxRange(CURSE_OF_WEAKNESS_1) && opponent->GetHealth() > me->GetMaxHealth() / 8)
+            if (curseCheckTimer <= diff && GetSpellCooldown(CURSE_OF_WEAKNESS_1) <= diff && Rand() < 85 &&
+                dist < CalcSpellMaxRange(CURSE_OF_WEAKNESS_1) && opponent->GetHealth() > me->GetMaxHealth() / 4)
             {
-                bool skipCurse = false;
-                uint32 CURSE = 0;
-                if (/*!skipCurse && !CURSE && */GetSpell(CURSE_OF_THE_ELEMENTS_1) && !IAmFree() &&
-                    master->GetGroup() && master->GetGroup()->GetMembersCount() > 2)
+                curseCheckTimer = 2500;
+                uint32 curses = _getCursesMask(opponent);
+                if (!(curses & CURSE_MASK_MY_CURSE_ANY))
                 {
-                    AuraEffect const* elem = opponent->GetAuraEffect(SPELL_AURA_MOD_RESISTANCE, SPELLFAMILY_WARLOCK, 0x0, 0x200, 0x0);
-                    if (!elem || elem->GetBase()->GetDuration() < 30000)
-                        CURSE = CURSE_OF_THE_ELEMENTS_1;
-                    else if (elem->GetCasterGUID() == me->GetGUID())
-                        skipCurse = true;
+                    if (!(curses & CURSE_MASK_ELEMENTS) && GetSpell(CURSE_OF_THE_ELEMENTS_1) && !IAmFree() &&
+                        (GetSpec() != BOT_SPEC_WARLOCK_AFFLICTION || Rand() < 33) &&
+                        master->GetGroup() && master->GetGroup()->GetMembersCount() > 2)
+                    {
+                        if (doCast(opponent, GetSpell(CURSE_OF_THE_ELEMENTS_1)))
+                            return;
+                    }
+                    if (!(curses & CURSE_MASK_MY_AGONY) && GetSpell(CURSE_OF_AGONY_1) && HasRole(BOT_ROLE_DPS) &&
+                        opponent->GetHealth() > me->GetMaxHealth() / 4 * (1 + opponent->getAttackers().size()))
+                    {
+                        if (doCast(opponent, GetSpell(CURSE_OF_AGONY_1)))
+                            return;
+                    }
+                    if (!(curses & CURSE_MASK_TONGUES) && GetSpell(CURSE_OF_TONGUES_1) && opponent->GetHealth() > me->GetMaxHealth() / 2 &&
+                        opponent->IsNonMeleeSpellCast(false, false, true))
+                    {
+                        if (doCast(opponent, GetSpell(CURSE_OF_TONGUES_1)))
+                            return;
+                    }
+                    if (!(curses & CURSE_MASK_EXHAUSTION) && GetSpell(CURSE_OF_EXHAUSTION_1) && !CCed(opponent, true) &&
+                        opponent->IsControlledByPlayer() && !opponent->HasAuraWithMechanic(1<<MECHANIC_SNARE))
+                    {
+                        if (doCast(opponent, GetSpell(CURSE_OF_EXHAUSTION_1)))
+                            return;
+                    }
+                    if (!(curses & CURSE_MASK_WEAKNESS) && GetSpell(CURSE_OF_WEAKNESS_1) && me->GetMap()->IsDungeon() &&
+                        opponent->GetMaxHealth() > me->GetMaxHealth() * 2)
+                    {
+                        if (doCast(opponent, GetSpell(CURSE_OF_WEAKNESS_1)))
+                            return;
+                    }
                 }
-                if (!skipCurse && !CURSE && GetSpell(CURSE_OF_TONGUES_1) && opponent->GetHealth() > me->GetMaxHealth() / 2 &&
-                    opponent->IsNonMeleeSpellCast(false, false, true))
-                {
-                    AuraEffect const* tong = opponent->GetAuraEffect(SPELL_AURA_MOD_LANGUAGE, SPELLFAMILY_WARLOCK, 692, 1);
-                    if (!tong || tong->GetBase()->GetDuration() < 5000)
-                        CURSE = CURSE_OF_TONGUES_1;
-                    else if (tong->GetCasterGUID() == me->GetGUID())
-                        skipCurse = true;
-                }
-                if (!skipCurse && !CURSE && GetSpell(CURSE_OF_WEAKNESS_1) && opponent->GetMaxHealth() > me->GetMaxHealth() * 2)
-                {
-                    AuraEffect const* weak = opponent->GetAuraEffect(SPELL_AURA_MOD_RESISTANCE_PCT, SPELLFAMILY_WARLOCK, 0x8000, 0x0, 0x0);
-                    if (!weak || weak->GetBase()->GetDuration() < 10000)
-                        CURSE = CURSE_OF_WEAKNESS_1;
-                    else if (weak->GetCasterGUID() == me->GetGUID())
-                        skipCurse = true;
-                }
-                if (!skipCurse && !CURSE && GetSpell(CURSE_OF_AGONY_1) && HasRole(BOT_ROLE_DPS) &&
-                    opponent->GetHealth() > me->GetMaxHealth() / 2 * (1 + opponent->getAttackers().size()) &&
-                    !opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_WARLOCK, 0x400, 0x0, 0x0, me->GetGUID()))
-                {
-                    CURSE = CURSE_OF_AGONY_1;
-                }
-                if (!skipCurse && !CURSE && GetSpell(CURSE_OF_EXHAUSTION_1) && !CCed(opponent, true) &&
-                    !opponent->HasAuraWithMechanic(1<<MECHANIC_SNARE))
-                {
-                    CURSE = CURSE_OF_EXHAUSTION_1;
-                }
-
-                if (!skipCurse && CURSE && doCast(opponent, GetSpell(CURSE)))
-                    return;
             }
 
             if (!HasRole(BOT_ROLE_DPS))
@@ -857,6 +901,7 @@ public:
             }
             //Immolate
             if (IsSpellReady(IMMOLATE_1, diff) && Rand() < 85 && dist < CalcSpellMaxRange(IMMOLATE_1) &&
+			    (GetSpec() != BOT_SPEC_WARLOCK_AFFLICTION || !GetSpell(UNSTABLE_AFFLICTION_1)) &&
                 (GetSpell(CONFLAGRATE_1) || opponent->GetHealth() > me->GetMaxHealth()/4 * (1 + opponent->getAttackers().size())) &&
                 !opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_WARLOCK, 0x4, 0x0, 0x0, me->GetGUID()))
             {
@@ -864,12 +909,19 @@ public:
                     return;
             }
             //Haunt
-            if (IsSpellReady(HAUNT_1, diff) && opponent->GetHealth() > me->GetMaxHealth()/4 * (1 + opponent->getAttackers().size()) &&
-                Rand() < 45 && GetHealthPCT(me) < 90 && dist < CalcSpellMaxRange(HAUNT_1) &&
-                !opponent->GetAuraEffect(SPELL_AURA_MOD_DAMAGE_FROM_CASTER, SPELLFAMILY_WARLOCK, 0x0, 0x40000, 0x0, me->GetGUID()) &&
-                opponent->GetDoTsByCaster(me->GetGUID()) > 1)
+            if (IsSpellReady(HAUNT_1, diff) && Rand() < 125 && dist < CalcSpellMaxRange(HAUNT_1) &&
+                opponent->GetHealth() > me->GetMaxHealth()/4 * (1 + opponent->getAttackers().size()) &&
+                !opponent->GetAuraEffect(SPELL_AURA_MOD_DAMAGE_FROM_CASTER, SPELLFAMILY_WARLOCK, 0x0, 0x40000, 0x0, me->GetGUID()))
             {
                 if (doCast(opponent, GetSpell(HAUNT_1)))
+                    return;
+            }
+            //Unstable Affliction
+            if (IsSpellReady(UNSTABLE_AFFLICTION_1, diff) && Rand() < 115 && dist < CalcSpellMaxRange(UNSTABLE_AFFLICTION_1) &&
+                opponent->GetHealth() > me->GetMaxHealth()/4 * (1 + opponent->getAttackers().size()) &&
+                !opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_WARLOCK, 0x0, 0x100, 0x0, me->GetGUID()))
+            {
+                if (doCast(opponent, GetSpell(UNSTABLE_AFFLICTION_1)))
                     return;
             }
             //Seed of Corruption
@@ -895,12 +947,8 @@ public:
             }
             //Drain Soul: only if can quad damage
             if (IsSpellReady(DRAIN_SOUL_1, diff) && opponent->GetTypeId() == TYPEID_UNIT &&
-                /*!opponent->ToCreature()->isWorldBoss() && */GetHealthPCT(opponent) < 25 &&
-                opponent->GetHealth() > me->GetMaxHealth() / 4 * (1 + opponent->getAttackers().size()) &&
-                dist < CalcSpellMaxRange(DRAIN_SOUL_1) && opponent->GetDoTsByCaster(me->GetGUID()) > 1
-                //abs(int32(me->GetLevel()) - int32(opponent->GetLevel())) <= 5
-                //!opponent->HasAuraType(SPELL_AURA_CHANNEL_DEATH_ITEM)
-                )
+                Rand() < (50 + 85 * me->GetMap()->IsDungeon()) && GetHealthPCT(opponent) < 25 &&
+                opponent->GetHealth() > me->GetMaxHealth() / 2 && dist < CalcSpellMaxRange(DRAIN_SOUL_1))
             {
                 if (doCast(opponent, GetSpell(DRAIN_SOUL_1)))
                     return;
@@ -917,13 +965,14 @@ public:
             {
                 uint32 boltinerate =
                     IsTank() && GetSpell(SEARING_PAIN_1) ? SEARING_PAIN_1 :
-                    GetSpell(INCINERATE_1) && opponent->HasAuraState(AURA_STATE_CONFLAGRATE) &&
-                    opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_WARLOCK, 0x4, 0x0, 0x0) &&
-                    opponent->GetAuraEffect(SPELL_AURA_MOD_ATTACKER_SPELL_CRIT_CHANCE, SPELLFAMILY_WARLOCK, 213, 0) &&
-                    (me->GetMap()->IsRaid() || !me->HasAura(SHADOW_TRANCE_BUFF)) ?
-                    INCINERATE_1 : SHADOW_BOLT_1;
+                    GetSpell(SHADOW_BOLT_1) && GetSpec() == BOT_SPEC_WARLOCK_AFFLICTION ? SHADOW_BOLT_1 :
+                    GetSpell(INCINERATE_1) && opponent->HasAuraState(AURA_STATE_CONFLAGRATE) ?
+                    //opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_WARLOCK, 0x4, 0x0, 0x0) &&
+                    //opponent->GetAuraEffect(SPELL_AURA_MOD_ATTACKER_SPELL_CRIT_CHANCE, SPELLFAMILY_WARLOCK, 213, 0) &&
+                    //(me->GetMap()->IsRaid() || !me->HasAura(SHADOW_TRANCE_BUFF)) ?
+                    INCINERATE_1 : 0;
 
-                if (doCast(opponent, GetSpell(boltinerate)))
+                if (boltinerate && doCast(opponent, GetSpell(boltinerate)))
                     return;
             }
 
@@ -1222,6 +1271,9 @@ public:
             //EmberStorm part 2: -0.25 sec cast time for Incinerate
             if ((_spec == BOT_SPEC_WARLOCK_DESTRUCTION) && lvl >= 35 && baseId == INCINERATE_1)
                 timebonus += 250;
+            //Glyph of Unstable Affliction: -0.2 sec cast time for Unstable Affliction
+            if (lvl >= 50 && baseId == UNSTABLE_AFFLICTION_1)
+                timebonus += 200;
             //Fear Cast Time Reduction (23047): -0.2 sec cast time for Fear
             if (baseId == FEAR_1)
                 timebonus += 200;
@@ -1440,7 +1492,7 @@ public:
                     manaGain = int32(float(manaGain) * 1.2f);
 
                 me->ModifyHealth(-damage);
-                CastSpellExtraArgs args(true);
+                CastSpellExtraArgs args;
                 args.AddSpellBP0(manaGain);
                 me->CastSpell(me, LIFE_TAP_ENERGIZE, args);
 
@@ -1448,6 +1500,10 @@ public:
                 if ((_spec == BOT_SPEC_WARLOCK_DEMONOLOGY) && me->GetLevel() >= 35 && botPet)
                     me->EnergizeBySpell(botPet, LIFE_TAP_ENERGIZE_PET, manaGain, POWER_MANA);
             }
+
+            //Glyph of Life Tap trigger
+            if (baseId == GLYPH_LIFE_TAP_BUFF)
+                SetShouldUpdateStats();
 
             if (baseId == DEMON_ARMOR_1 || baseId == FEL_ARMOR_1)
             {
@@ -1533,7 +1589,8 @@ public:
             }
 
             //Chaotic Mind (custom)
-            if (lvl >= 60 && target != me && spell->SpellFamilyName == SPELLFAMILY_WARLOCK && !spell->IsPositive())
+            if (lvl >= 60 && target != me && GetSpec() != BOT_SPEC_WARLOCK_AFFLICTION &&
+                spell->SpellFamilyName == SPELLFAMILY_WARLOCK && !spell->IsPositive())
             {
                 if (urand(1,100) <= 5)
                     me->CastSpell(me, CHAOTIC_MIND, true);
@@ -1786,6 +1843,8 @@ public:
             drainManaTimer = 0;
             healthstoneTimer = 0;
             soulstoneTimer = 0;
+			lifeTapCheckTimer = 0;
+            curseCheckTimer = 0;
 
             petSummonTimer = 5000;
 
@@ -1803,6 +1862,8 @@ public:
             if (drainManaTimer > diff)              drainManaTimer -= diff;
             if (healthstoneTimer > diff)            healthstoneTimer -= diff;
             if (soulstoneTimer > diff)              soulstoneTimer -= diff;
+            if (lifeTapCheckTimer > diff)           lifeTapCheckTimer -= diff;
+            if (curseCheckTimer > diff)             curseCheckTimer -= diff;
 
             if (petSummonTimer > diff)              petSummonTimer -= diff;
         }
@@ -1860,7 +1921,7 @@ public:
             InitSpellMap(RITUAL_OF_SOULS_1); //not casted
 
   /*Talent*/lvl >= 30 && isAffl ? InitSpellMap(CURSE_OF_EXHAUSTION_1) : RemoveSpell(CURSE_OF_EXHAUSTION_1);
-///*Talent*/lvl >= 50 && isAffl ? InitSpellMap(UNSTABLE_AFFLICTION_1) : RemoveSpell(UNSTABLE_AFFLICTION_1);
+  /*Talent*/lvl >= 50 && isAffl ? InitSpellMap(UNSTABLE_AFFLICTION_1) : RemoveSpell(UNSTABLE_AFFLICTION_1);
   /*Talent*/lvl >= 60 && isAffl ? InitSpellMap(HAUNT_1) : RemoveSpell(HAUNT_1);
 
   /*Talent*/lvl >= 20 && isDest ? InitSpellMap(SHADOWBURN_1) : RemoveSpell(SHADOWBURN_1);
@@ -1903,6 +1964,7 @@ public:
             RefreshAura(BACKDRAFT, isDest && level >= 50 ? 1 : 0);
 
             RefreshAura(GLYPH_CORRUPTION, level >= 15 ? 1 : 0);
+			RefreshAura(GLYPH_LIFE_TAP, level >= 15 ? 1 : 0);
             RefreshAura(GLYPH_FEAR, level >= 15 ? 1 : 0);
             RefreshAura(GLYPH_QUICK_DECAY, level >= 15 ? 1 : 0);
             RefreshAura(GLYPH_CONFLAGRATE, level >= 40 ? 1 : 0);
@@ -1953,7 +2015,8 @@ public:
 
     private:
         //Timers
-        uint32 fearTimer, banishTimer, unbanishTimer, drainManaTimer, healthstoneTimer, soulstoneTimer;
+        uint32 fearTimer, banishTimer, unbanishTimer, drainManaTimer, healthstoneTimer,
+            soulstoneTimer, lifeTapCheckTimer, curseCheckTimer;
         //Pet
         uint32 myPetType;
         uint32 petSummonTimer;
@@ -1962,6 +2025,29 @@ public:
         bool canShadowWard;
         bool longCasted, instaCast; //some sort of rotation thing
         bool hasHealthstone, hasSoulstone;
+		
+
+        uint32 _getCursesMask(Unit const* unit) const
+        {
+            uint32 mask = 0;
+            Unit::AuraApplicationMap const& aurapps = unit->GetAppliedAuras();
+            for (Unit::AuraApplicationMap::const_iterator itr = aurapps.begin(); itr != aurapps.end(); ++itr)
+            {
+                bool my_cast = itr->second->GetBase()->GetCasterGUID() == me->GetGUID();
+                switch (itr->second->GetBase()->GetSpellInfo()->GetFirstRankSpell()->Id)
+                {
+                    case CURSE_OF_WEAKNESS_1:       mask |= CURSE_MASK_WEAKNESS | (my_cast ? CURSE_MASK_MY_WEAKNESS : CurseType(0));       break;
+                    case CURSE_OF_AGONY_1:          mask |= CURSE_MASK_AGONY | (my_cast ? CURSE_MASK_MY_AGONY : CurseType(0));             break;
+                    case CURSE_OF_DOOM_1:           mask |= CURSE_MASK_DOOM | (my_cast ? CURSE_MASK_MY_DOOM : CurseType(0));               break;
+                    case CURSE_OF_THE_ELEMENTS_1:   mask |= CURSE_MASK_ELEMENTS | (my_cast ? CURSE_MASK_MY_ELEMENTS : CurseType(0));       break;
+                    case CURSE_OF_TONGUES_1:        mask |= CURSE_MASK_TONGUES | (my_cast ? CURSE_MASK_MY_TONGUES : CurseType(0));         break;
+                    case CURSE_OF_EXHAUSTION_1:     mask |= CURSE_MASK_EXHAUSTION | (my_cast ? CURSE_MASK_MY_EXHAUSTION : CurseType(0));   break;
+                    default:                                                                                                    break;
+                }
+            }
+
+            return mask;
+        }
     };
 };
 

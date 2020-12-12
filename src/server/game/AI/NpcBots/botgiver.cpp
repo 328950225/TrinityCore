@@ -186,7 +186,7 @@ public:
                 case HIRE_ENTRY:
                 {
                     uint32 entry = action - GOSSIP_ACTION_INFO_DEF;
-                    Creature const* bot = BotDataMgr::FindBotInWorld(entry);
+                    Creature const* bot = BotDataMgr::FindBot(entry);
                     if (!bot)
                     {
                         //possible but still

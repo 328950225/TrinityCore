@@ -159,6 +159,7 @@ class bot_ai : public CreatureAI
 
         Item* GetEquips(uint8 slot) const { return _equips[slot]; }
         Item* GetEquipsByGuid(ObjectGuid itemGuid) const;
+		bool UnEquipAll(ObjectGuid::LowType receiver);
 
         void CastBotItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx);
         void CastBotItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx, Item* item, ItemTemplate const* proto);
@@ -423,9 +424,9 @@ class bot_ai : public CreatureAI
         bool _canUseRanged() const;
         bool _canUseRelic() const;
         bool _canEquip(ItemTemplate const* item, uint8 slot, bool ignoreItemLevel = false) const;
-        bool _unequip(uint8 slot);
-        bool _equip(uint8 slot, Item* newItem);
-        bool _resetEquipment(uint8 slot);
+        bool _unequip(uint8 slot, ObjectGuid::LowType receiver);
+        bool _equip(uint8 slot, Item* newItem, ObjectGuid::LowType receiver);
+        bool _resetEquipment(uint8 slot, ObjectGuid::LowType receiver);
 
         void _castBotItemUseSpell(Item const* item, SpellCastTargets const& targets/*, uint8 cast_count = 0, uint32 glyphIndex = 0*/);
 

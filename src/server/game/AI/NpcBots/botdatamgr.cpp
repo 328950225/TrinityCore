@@ -446,7 +446,7 @@ void BotDataMgr::UnregisterBot(Creature const* bot)
     _existingBots.erase(bot);
     //TC_LOG_ERROR("entities.unit", "BotDataMgr::UnregisterBot: unregistered bot %u (%s)", bot->GetEntry(), bot->GetName().c_str());
 }
-Creature const* BotDataMgr::FindBotInWorld(uint32 entry)
+Creature const* BotDataMgr::FindBot(uint32 entry)
 {
     std::shared_lock<std::shared_mutex> lock(_lock);
 

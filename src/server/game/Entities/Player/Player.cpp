@@ -21929,7 +21929,19 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
         SendBuyError(BUY_ERR_CANT_FIND_ITEM, nullptr, item, 0);
         return false;
     }
-
+	
+    // npcbot
+    if (HaveBot())
+    {
+        if (!(pProto->AllowableClass & (GetClassMask() | GetBotMgr()->GetAllNpcBotsClassMask())) &&
+            pProto->Bonding == BIND_WHEN_PICKED_UP && !IsGameMaster())
+        {
+            SendBuyError(BUY_ERR_CANT_FIND_ITEM, nullptr, item, 0);
+            return false;
+        }
+    }
+    else
+    // end npcbot
     if (!(pProto->AllowableClass & GetClassMask()) && pProto->Bonding == BIND_WHEN_PICKED_UP && !IsGameMaster())
     {
         SendBuyError(BUY_ERR_CANT_FIND_ITEM, nullptr, item, 0);

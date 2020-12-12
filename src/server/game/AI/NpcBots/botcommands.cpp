@@ -102,6 +102,7 @@ public:
             { "add",        HandleNpcBotAddCommand,                     GM_COMMANDS, Console::No  },
             { "remove",     HandleNpcBotRemoveCommand,                  GM_COMMANDS, Console::No  },
             { "spawn",      HandleNpcBotSpawnCommand,                   GM_COMMANDS, Console::No  },
+			{ "move",       HandleNpcBotMoveCommand,                    GM_COMMANDS, Console::No  },
             { "delete",     HandleNpcBotDeleteCommand,                  GM_COMMANDS, Console::No  },
             { "lookup",     HandleNpcBotLookupCommand,                  GM_COMMANDS, Console::No  },
             { "revive",     HandleNpcBotReviveCommand,                  GM_COMMANDS, Console::No  },
@@ -876,30 +877,21 @@ public:
             return false;
         }
 
-        if (Player const* botowner = bot->GetBotOwner()->ToPlayer())
-            botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
+        Player* botowner = bot->GetBotOwner()->ToPlayer();
 
-        uint32 id = bot->GetEntry();
-
-        NpcBotData const* npcBotData = BotDataMgr::SelectNpcBotData(id);
-        ASSERT(npcBotData);
-
-        bool found = false;
-        for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
-        {
-            if (npcBotData->equips[i])
-            {
-                found = true;
-                break;
-            }
-        }
-        if (found)
+        ObjectGuid::LowType receiver =
+            botowner ? botowner->GetGUID().GetCounter() :
+            bot->GetBotAI()->GetBotOwnerGuid() != 0 ? bot->GetBotAI()->GetBotOwnerGuid() :
+            chr->GetGUID().GetCounter();
+        if (!bot->GetBotAI()->UnEquipAll(receiver))
         {
             handler->PSendSysMessage("%s 分配了装备。删除之前请先移除装备!", bot->GetName().c_str());
             handler->SetSentErrorMessage(true);
             return false;
         }
 
+        if (botowner)
+            botowner->GetBotMgr()->RemoveBot(bot->GetGUID(), BOT_REMOVE_DISMISS);
 
         bot->CombatStop();
         bot->GetBotAI()->Reset();
@@ -907,7 +899,7 @@ public:
         Creature::DeleteFromDB(bot->GetSpawnId());
         bot->AddObjectToRemoveList();
 
-        BotDataMgr::UpdateNpcBotData(id, NPCBOT_UPDATE_ERASE);
+        BotDataMgr::UpdateNpcBotData(bot->GetEntry(), NPCBOT_UPDATE_ERASE);
 
         handler->SendSysMessage("成功删除NpcBot");
         return true;
@@ -949,7 +941,7 @@ public:
         if (BotDataMgr::SelectNpcBotData(id))
         {
             handler->PSendSysMessage("Npcbot %u 已经存在于 `characters_npcbot` 表中!", id);
-            handler->SendSysMessage("如果要将此机器人移动到新位置，你可以使用 '.npc move' 命令");
+            handler->SendSysMessage("如果要将此机器人移动到新位置，你可以使用 'npcbot move' 命令");
             handler->SetSentErrorMessage(true);
             return false;
         }

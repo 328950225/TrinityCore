@@ -82,7 +82,7 @@ class BotDataMgr
 
         static void RegisterBot(Creature const* bot);
         static void UnregisterBot(Creature const* bot);
-        static Creature const* FindBotInWorld(uint32 entry);
+        static Creature const* FindBot(uint32 entry);
 
     private:
 
