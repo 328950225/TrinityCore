@@ -2479,6 +2479,11 @@ void WorldObject::ModSpellDurationTime(SpellInfo const* spellInfo, int32& durati
     if (Player* modOwner = GetSpellModOwner())
         modOwner->ApplySpellMod(spellInfo->Id, SPELLMOD_CASTING_TIME, duration, spell);
 
+    //npcbot - apply bot spell cast time mods
+    if (duration > 0 && GetTypeId() == TYPEID_UNIT && ToCreature()->IsNPCBot())
+        ToCreature()->ApplyCreatureSpellCastTimeMods(spellInfo, duration);
+    //end npcbot
+
     Unit const* unitCaster = ToUnit();
     if (!unitCaster)
         return;

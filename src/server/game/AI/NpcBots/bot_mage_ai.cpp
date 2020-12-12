@@ -13,8 +13,8 @@
 #include "TemporarySummon.h"
 /*
 Mage NpcBot (reworked by Trickerer onlysuffering@gmail.com)
-Complete - 80-90%
-TODO: arcane spec, arcane power, presence of mind, slow (pvp), mana shield, cold snap
+Complete - 90-95%
+TODO: slow (pvp), mana shield
 */
 
 enum MageBaseSpells
@@ -23,6 +23,7 @@ enum MageBaseSpells
     AMPLIFYMAGIC_1                      = 1008,//manual use only
     ARCANEINTELLECT_1                   = 1459,
     ARCANEMISSILES_1                    = 5143,
+	ARCANE_BLAST_1                      = 30451,
     POLYMORPH_1                         = 118,
     COUNTERSPELL_1                      = 2139,
     SPELLSTEAL_1                        = 30449,
@@ -49,13 +50,17 @@ enum MageBaseSpells
     ICE_BARRIER_1                       = 11426,
     ICE_BLOCK_1                         = 45438,
     FOCUS_MAGIC_1                       = 54646,
+	PRESENCE_OF_MIND_1                  = 12043,
+    ARCANE_POWER_1                      = 12042,
     SLOW_FALL_1                         = 130,
     ICE_LANCE_1                         = 30455,
     ICY_VEINS_1                         = 12472,
+	COLD_SNAP_1                         = 11958,
     DEEP_FREEZE_1                       = 44572,
     FROST_WARD_1                        = 6143,
     FIRE_WARD_1                         = 543,
     //Special
+	ARCANE_MISSILES_DAMAGE_1            = 7268,
     BLIZZARD_DAMAGE_1                   = 42208,
     LIVING_BOMB_DAMAGE_1                = 44461,
     CONJURE_MANA_GEM_1                  = 759,
@@ -96,6 +101,7 @@ enum MagePassives
     INCANTERS_ABSORPTION1               = 44394,
     INCANTERS_ABSORPTION2               = 44395,
     INCANTERS_ABSORPTION3               = 44396,
+	MISSILE_BARRAGE                     = 54490,//rank 5
     PYROMANIAC                          = 34296,//rank 3
     SHATTERED_BARRIER                   = 54787,//rank 2
     //ARCTIC_WINDS                        = 31678,//rank 5
@@ -124,16 +130,16 @@ enum MageSpecial
     BRAIN_FREEZE_BUFF                   = 57761,
     HOT_STREAK_BUFF                     = 48108,
     FINGERS_OF_FROST_BUFF               = 44544,
+	ARCANE_BLAST_DEBUFF                 = 36032,
+    MISSILE_BARRAGE_BUFF                = 44401,
     IMPROVED_BLIZZARD_CHILL             = 12486,//rank 3
     FROSTBITE_TRIGGERED                 = 12494,
     WINTERS_CHILL_TRIGGERED             = 12579,
-    IGNITE_TRIGGERED                    = 12654,
-    //creature
-    CREATURE_ENTRY_CHROMAGGUS           = 14020
+    IGNITE_TRIGGERED                    = 12654
 };
 
 static const uint32 Mage_spells_damage_arr[] =
-{ ARCANEMISSILES_1, BLAST_WAVE_1, BLIZZARD_1, CONE_OF_COLD_1, DEEP_FREEZE_1, DRAGON_BREATH_1, FIREBALL_1,
+{ ARCANEMISSILES_1, ARCANE_BLAST_1, BLAST_WAVE_1, BLIZZARD_1, CONE_OF_COLD_1, DEEP_FREEZE_1, DRAGON_BREATH_1, FIREBALL_1,
 FIRE_BLAST_1, FLAMESTRIKE_1, FROSTBOLT_1, FROSTFIRE_BOLT_1, FROST_NOVA_1, ICE_LANCE_1, LIVING_BOMB_1, PYROBLAST_1 };
 
 static const uint32 Mage_spells_cc_arr[] =
@@ -142,7 +148,8 @@ static const uint32 Mage_spells_cc_arr[] =
 static const uint32 Mage_spells_support_arr[] =
 { AMPLIFYMAGIC_1, ARCANEINTELLECT_1, BLINK_1, COMBUSTION_1, DAMPENMAGIC_1, EVOCATION_1, FIRE_WARD_1, FROST_WARD_1,
 FROST_ARMOR_1, FOCUS_MAGIC_1, ICE_BARRIER_1, ICE_BLOCK_1, ICY_VEINS_1, INVISIBILITY_1, ICE_ARMOR_1, MOLTEN_ARMOR_1,
-SLOW_FALL_1, SPELLSTEAL_1, REMOVE_CURSE_1, CONJURE_MANA_GEM_1, RITUAL_OF_REFRESHMENT_1, SUMMON_WATER_ELEMENTAL_1 };
+SLOW_FALL_1, SPELLSTEAL_1, REMOVE_CURSE_1, CONJURE_MANA_GEM_1, RITUAL_OF_REFRESHMENT_1, SUMMON_WATER_ELEMENTAL_1,
+COLD_SNAP_1, PRESENCE_OF_MIND_1, ARCANE_POWER_1 };
 
 static const std::vector<uint32> Mage_spells_damage(FROM_ARRAY(Mage_spells_damage_arr));
 static const std::vector<uint32> Mage_spells_cc(FROM_ARRAY(Mage_spells_cc_arr));
@@ -365,6 +372,7 @@ public:
 
             Counter(diff);
             CheckSpellSteal(diff);
+			CheckColdSnap(diff);
             DoNormalAttack(diff);
         }
 
@@ -402,6 +410,22 @@ public:
                 Rand() < 45)
             {
                 if (doCast(me, GetSpell(ICY_VEINS_1)))
+                    return;
+            }
+            //ARCANE POWER (no GCD, not with PoM)
+            if (IsSpellReady(ARCANE_POWER_1, diff, false) && GetManaPCT(me) > 50 &&
+                (opponent->GetMaxHealth() > master->GetMaxHealth() * 2 ||
+                (opponent->GetTypeId() == TYPEID_UNIT && opponent->ToCreature()->GetCreatureTemplate()->rank != CREATURE_ELITE_NORMAL)) &&
+                Rand() < 75 && !me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x20, 0x0))
+            {
+                if (doCast(me, GetSpell(ARCANE_POWER_1)))
+                    return;
+            }
+            //PRESENCE OF MIND (no GCD, not with AP)
+            if (IsSpellReady(PRESENCE_OF_MIND_1, diff, false) && GetManaPCT(me) > 10 && Rand() < 35 &&
+                !me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x80000, 0x0))
+            {
+                if (doCast(me, GetSpell(PRESENCE_OF_MIND_1)))
                     return;
             }
             //DAMAGE
@@ -455,7 +479,7 @@ public:
                 }
             }
 
-            if (!CanAffectVictim(SPELL_SCHOOL_MASK_FROST|SPELL_SCHOOL_MASK_FIRE))
+            if (!CanAffectVictim(SPELL_SCHOOL_MASK_FROST|SPELL_SCHOOL_MASK_FIRE|SPELL_SCHOOL_MASK_ARCANE))
                 return;
 
             //spell reflections: Ice Lance instant / Frostbolt Rank 1
@@ -467,9 +491,9 @@ public:
                 return;
 
             //Pyroblast TODO: PoM
-            if (IsSpellReady(PYROBLAST_1, diff) &&
-                dist < CalcSpellMaxRange(PYROBLAST_1) && ((opponent->IsPolymorphed() &&
-                (b_attackers.size() < 2 || (*b_attackers.begin()) == opponent)) || me->HasAura(HOT_STREAK_BUFF)))
+            if (IsSpellReady(PYROBLAST_1, diff) && dist < CalcSpellMaxRange(PYROBLAST_1) &&
+			    ((opponent->IsPolymorphed() && (b_attackers.size() < 2 || (*b_attackers.begin()) == opponent)) ||
+                me->HasAura(HOT_STREAK_BUFF) || (me->HasAura(PRESENCE_OF_MIND_1) && (GetSpec() != BOT_SPEC_MAGE_ARCANE || !GetSpell(ARCANE_BLAST_1)))))
             {
                 if (doCast(opponent, GetSpell(PYROBLAST_1)))
                     return;
@@ -515,13 +539,7 @@ public:
 
                 SetSpellCooldown(BLIZZARD_1, 1500); //fail
             }
-            //Arcane Missiles (special condition for BWL)
-            //if (IsSpellReady(ARCANEMISSILES_1, diff) && dist < CalcSpellMaxRange(ARCANEMISSILES_1) &&
-            //    ((opponent->GetTypeId() == TYPEID_UNIT && opponent->GetEntry() == CREATURE_ENTRY_CHROMAGGUS) || (b_attackers.empty() && Rand() < 3)))
-            //{
-            //    if (doCast(opponent, GetSpell(ARCANEMISSILES_1)))
-            //        return;
-            //}
+
             //Ice Lance (no cd, only GCD)
             if (fbCasted && (!me->GetMap()->IsDungeon() || opponent->IsControlledByPlayer()) &&
                 IsSpellReady(ICE_LANCE_1, diff) && dist < CalcSpellMaxRange(ICE_LANCE_1) &&
@@ -539,7 +557,23 @@ public:
                     return;
             }
             //Main rotation
-            if (IsSpellReady(FROSTFIREBOLT, diff) && _spec == BOT_SPEC_MAGE_FIRE && dist < CalcSpellMaxRange(FROSTFIREBOLT))
+            //Arcane Missiles (arcane spec only)
+            if (IsSpellReady(ARCANEMISSILES_1, diff) && _spec == BOT_SPEC_MAGE_ARCANE && dist < CalcSpellMaxRange(ARCANEMISSILES_1) &&
+                (me->GetLevel() < 45 || ((arcaneBlastStack >= 3 ||
+                sSpellMgr->GetSpellInfo(ARCANE_BLAST_1)->CalcPowerCost(me, SPELL_SCHOOL_MASK_ARCANE) > int(me->GetPower(POWER_MANA))) &&
+                me->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x2, 0x0))))
+            {
+                if (doCast(opponent, GetSpell(ARCANEMISSILES_1)))
+                    return;
+            }
+            if (IsSpellReady(ARCANE_BLAST_1, diff) && _spec == BOT_SPEC_MAGE_ARCANE && dist < CalcSpellMaxRange(ARCANE_BLAST_1) &&
+                (arcaneBlastStack < 4 || !me->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x2, 0x0)))
+            {
+                if (doCast(opponent, GetSpell(ARCANE_BLAST_1)))
+                    return;
+            }
+            if (IsSpellReady(FROSTFIREBOLT, diff) && (_spec == BOT_SPEC_MAGE_FIRE || !GetSpell(ARCANE_BLAST_1)) &&
+                dist < CalcSpellMaxRange(FROSTFIREBOLT))
             {
                 if (doCast(opponent, GetSpell(FROSTFIREBOLT)))
                     return;
@@ -783,6 +817,36 @@ public:
             }
         }
 
+        void CheckColdSnap(uint32 diff)
+        {
+            if (!IsSpellReady(COLD_SNAP_1, diff) || !me->IsInCombat() || me->IsMounted() || Rand() > 50)
+                return;
+
+            //TODO: recheck priorities
+            uint32 needFactor = 0;
+            uint32 cooldown;
+            cooldown = GetSpellCooldown(FROST_NOVA_1);
+            needFactor += !cooldown ? 0 : 3 * cooldown / 220;  //0-100 x3
+            cooldown = GetSpellCooldown(ICE_BLOCK_1);
+            needFactor += !cooldown ? 0 : 3 * cooldown / 2400; //0-100 x3
+            cooldown = shielded ? 0 : GetSpellCooldown(ICE_BARRIER_1);
+            needFactor += !cooldown ? 0 : 3 * cooldown / 240;  //0-100 x3
+            cooldown = GetSpellCooldown(FROST_WARD_1);
+            needFactor += !cooldown ? 0 : 2 * cooldown / 300;  //0-100 x2
+            cooldown = GetSpellCooldown(ICY_VEINS_1);
+            needFactor += !cooldown ? 0 : 2 * cooldown / 1500; //0-100 x2
+            cooldown = (botPet && botPet->IsAlive()) ? 0 : GetSpellCooldown(SUMMON_WATER_ELEMENTAL_1);
+            needFactor += !cooldown ? 0 : 1 * cooldown / 1500; //0-100
+            cooldown = GetSpellCooldown(DEEP_FREEZE_1);
+            needFactor += !cooldown ? 0 : 1 * cooldown / 240;  //0-100
+            cooldown = GetSpellCooldown(CONE_OF_COLD_1);
+            needFactor += !cooldown ? 0 : 1 * cooldown / 80;   //0-100
+            //0-1600
+
+            if (needFactor >= 700 && doCast(me, GetSpell(COLD_SNAP_1)))
+                return;
+        }
+
         void CheckShield(uint32 diff)
         {
             //TODO: Mana Shield
@@ -792,7 +856,8 @@ public:
             if (shieldCheckTimer <= diff)
             {
                 shieldCheckTimer = 1500;
-                shielded = me->HasAura(GetSpell(ICE_BARRIER_1));
+                shielded = me->GetTotalAuraModifierByMiscValue(SPELL_AURA_SCHOOL_ABSORB, 127) > 0;
+                shielded = shielded ? shielded : me->HasAura(GetSpell(ICE_BARRIER_1));
             }
 
             if (shielded || !IsSpellReady(ICE_BARRIER_1, diff) || IsCasting())
@@ -843,8 +908,8 @@ public:
 
             //Incineration: 6% additional crit chance for Fire Blast, Scorch, Arcane Blast and Cone of Cold
             if (lvl >= 10 &&
-                (baseId == FIRE_BLAST_1 || /*baseId == SCORCH_1 ||
-                baseId == ARCANE_BLAST_1 || */baseId == CONE_OF_COLD_1))
+                (baseId == FIRE_BLAST_1 || /*baseId == SCORCH_1 ||*/
+                baseId == ARCANE_BLAST_1 || baseId == CONE_OF_COLD_1))
                 crit_chance += 6.f;
             //World In Flames: 6% additional critical chance for Flamestrike, Pyroblast, Blast Wave, Dragon's Breath, Living Bomb, Blizzard and Arcane Explosion
             if (lvl >= 15 &&
@@ -895,8 +960,8 @@ public:
 
             //Spell Impact: 6% bonus damage for Arcne Explosion, Arcane Blast, Scorch, Fireball, Ice Lance and Cone of Cold
             if (lvl >= 20 &&
-                (/*baseId == ARCANE_EXPLOSION_1 || baseId == ARCANE_BLAST_1 ||
-                baseId == SCORCH_1 || */baseId == FIREBALL_1 ||
+                (/*baseId == ARCANE_EXPLOSION_1 || baseId == SCORCH_1 ||*/
+                baseId == ARCANE_BLAST_1 || baseId == FIREBALL_1 ||
                 baseId == ICE_LANCE_1 || baseId == CONE_OF_COLD_1))
                 pctbonus += 0.06f;
             //Piercing Ice: 6% bonus damage for Frost spells
@@ -914,6 +979,18 @@ public:
             //Fire Power: 10% bonus damage for Fire spells
             if ((_spec == BOT_SPEC_MAGE_FIRE) && lvl >= 35 && (SPELL_SCHOOL_MASK_FIRE & spellInfo->GetSchoolMask()))
                 pctbonus += 0.1f;
+            //Arcane Empowerment part 1,2: 45% / 9% bonus damage (from spellpower) for Arcane Missiles / Arcane Blast
+            if (_spec == BOT_SPEC_MAGE_ARCANE && lvl >= 40)
+            {
+                if (baseId == ARCANE_MISSILES_DAMAGE_1)
+                    fdamage += me->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC) * 0.45f * me->CalculateDefaultCoefficient(spellInfo, SPELL_DIRECT_DAMAGE) * me->CalculateSpellpowerCoefficientLevelPenalty(spellInfo);
+                else if (baseId == ARCANE_BLAST_1)
+                    fdamage += me->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_MAGIC) * 0.09f * me->CalculateDefaultCoefficient(spellInfo, SPELL_DIRECT_DAMAGE) * me->CalculateSpellpowerCoefficientLevelPenalty(spellInfo);
+            }
+            //Arcane Power: +20% bonus damage
+            if (AuraEffect const* pow = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x80000, 0x0))
+                if (pow->IsAffectedOnSpell(spellInfo))
+                    pctbonus += 0.2f;
             //Molten Fury: 12% bonus damage for All spells against target with less than 35% hp
             if ((_spec == BOT_SPEC_MAGE_FIRE) &&
                 lvl >= 40 && damageinfo.target->HasAuraState(AURA_STATE_HEALTHLESS_35_PERCENT))
@@ -963,7 +1040,10 @@ public:
             if (AuraEffect const* eff = me->GetAuraEffect(ARCANE_CONCENTRATION_BUFF, 0, me->GetGUID()))
                 if (eff->IsAffectedOnSpell(spellInfo))
                     pctbonus += 1.0f;
-
+            //Missile Barrage: -100% mana cost for Arcane Missiles
+            if (baseId == ARCANEMISSILES_1)
+                if (me->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x2, 0x0))
+                    pctbonus += 1.0f;
             //pct mods
             //Precision part 1: -3% mana cost for All spells
             if (lvl >= 15)
@@ -974,6 +1054,14 @@ public:
             //Improved Blink part 1: -50% mana cost for Blink
             if ((_spec == BOT_SPEC_MAGE_ARCANE) && lvl >= 30 && baseId == BLINK_1)
                 pctbonus += 0.5f;
+            //Arcane Blast: +175% mana cost for Arcane Blast (per stack)
+            if (baseId == ARCANE_BLAST_1)
+                if (AuraEffect const* bla = me->GetAuraEffect(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, SPELLFAMILY_MAGE, 0x0, 0x0, 0xC))
+                    pctbonus += -1.75f * bla->GetBase()->GetStackAmount();
+            //Arcane Power: +20% mana cost
+            if (AuraEffect const* pow = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x80000, 0x0))
+                if (pow->IsAffectedOnSpell(spellInfo))
+                    pctbonus += -0.2f;
 
             //Glyph of Arcane Intellect: -50% mana cost for Arcane Intellect/Brilliance
             if (lvl >= 15 && baseId == ARCANEINTELLECT_1)
@@ -1009,7 +1097,10 @@ public:
             if (baseId == PYROBLAST_1)
                 if (me->HasAura(HOT_STREAK_BUFF))
                     timebonus += casttime;
-
+            //Presence of Mind: -100% cast time
+            if (AuraEffect const* eff = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x20, 0x0))
+                if (eff->IsAffectedOnSpell(spellInfo))
+                    timebonus += casttime;
             //flat mods
             //Improved Fireball: -0.5 sec cast time for Fireball (Frostfire too for bot)
             if (lvl >= 10 && (baseId == FIREBALL_1 || baseId == FROSTFIRE_BOLT_1))
@@ -1020,6 +1111,9 @@ public:
             //Empowered Frostbolt part 2: -0.2 sec cast time for Frostbolt
             if (lvl >= 45 && baseId == FROSTBOLT_1)
                 timebonus += 200;
+            //Missile Barrage: -2.5 sec channeling time, -0.5 sec for every tick
+            if (baseId == ARCANEMISSILES_1 && me->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x2, 0x0))
+                timebonus += casttime / 2;
 
             casttime = std::max<int32>(casttime - timebonus, 0);
         }
@@ -1039,7 +1133,7 @@ public:
                 pctbonus += 0.2f;
             //Cold as Ice: -20% cooldown for Ice Barrier, Cold Snap and Summon Water Elemental
             if ((_spec == BOT_SPEC_MAGE_FROST) && lvl >= 35 &&
-                (baseId == ICE_BARRIER_1/* || baseId == COLD_SNAP_1*/ || baseId == SUMMON_WATER_ELEMENTAL_1))
+                (baseId == ICE_BARRIER_1 || baseId == COLD_SNAP_1 || baseId == SUMMON_WATER_ELEMENTAL_1))
                 pctbonus += 0.2f;
 
             //flat mods
@@ -1182,8 +1276,20 @@ public:
                     me->RemoveAurasDueToSpell(ARCANE_POTENCY_BUFF2);
                 }
             }
-            //Firestarter
-            if (baseId == FLAMESTRIKE_1/* && me->HasAura(FIRESTARTER_BUFF)*/)
+            //Handle Presence of Mind
+            bool consumed_Pom = false;
+            if (AuraEffect const* eff = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x20, 0x0))
+            {
+                if (eff->IsAffectedOnSpell(spellInfo))
+                {
+                    me->RemoveAurasDueToSpell(PRESENCE_OF_MIND_1);
+                    consumed_Pom = true;
+                }
+            }
+            if (!consumed_Pom)
+            {
+                //Firestarter
+                if (baseId == FLAMESTRIKE_1)
                 me->RemoveAurasDueToSpell(FIRESTARTER_BUFF);
             //Brain Freeze (Fireball!)
             if (baseId == FROSTFIRE_BOLT_1 || baseId == FIREBALL_1)
@@ -1191,7 +1297,29 @@ public:
             //Hot Streak
             if (baseId == PYROBLAST_1)
                 me->RemoveAurasDueToSpell(HOT_STREAK_BUFF);
-            //TODO: Presence of mind
+			}
+            //Handle Cold Snap
+            if (baseId == COLD_SNAP_1)
+            {
+                SpellInfo const* cdInfo;
+                BotSpellMap const& myspells = GetSpellMap();
+                for (BotSpellMap::const_iterator itr = myspells.begin(); itr != myspells.end(); ++itr)
+                {
+                    if (itr->first == baseId)
+                        continue;
+                    if (itr->second->spellId != 0 && itr->second->cooldown > 0)
+                    {
+                        cdInfo = sSpellMgr->GetSpellInfo(itr->first);
+                        if (cdInfo && cdInfo->SpellFamilyName == SPELLFAMILY_MAGE && cdInfo->GetRecoveryTime() > 0 &&
+                            (cdInfo->GetSchoolMask() & SPELL_SCHOOL_MASK_FROST))
+                            ResetSpellCooldown(itr->first);
+                    }
+                }
+            }
+
+            //Missile Barrage
+            if (baseId == ARCANEMISSILES_1)
+                me->RemoveAurasDueToSpell(MISSILE_BARRAGE_BUFF);
         }
 
         void SpellHitTarget(WorldObject* wtarget, SpellInfo const* spell) override
@@ -1317,11 +1445,15 @@ public:
             }
 
             //Glyph of Ice Barrier: 30% increased effect
-            if (baseId == ICE_BARRIER_1 && lvl >= 46)
+            if (baseId == ICE_BARRIER_1)
             {
-                AuraEffect* barr = me->GetAuraEffect(spellId, 0);
-                if (barr)
-                    barr->ChangeAmount(barr->GetAmount() * 1.3f);
+                shielded = true;
+                if (lvl >= 46)
+                {
+                    AuraEffect* barr = me->GetAuraEffect(spellId, 0);
+                    if (barr)
+                        barr->ChangeAmount(barr->GetAmount() * 1.3f);
+                }
             }
 
             //Custom things
@@ -1348,15 +1480,20 @@ public:
             if (!caster)
                 return;
 
-            //uint32 spellId = spell->Id;
+            uint32 baseId = spell->GetFirstRankSpell()->Id;
 
-            //Ward helper
-            if (!canFrostWard && (spell->GetSchoolMask() & SPELL_SCHOOL_MASK_FROST) &&
-                (spell->HasEffect(SPELL_EFFECT_SCHOOL_DAMAGE) || spell->HasAura(SPELL_AURA_PERIODIC_DAMAGE)))
-                canFrostWard = true;
-            if (!canFireWard && (spell->GetSchoolMask() & SPELL_SCHOOL_MASK_FIRE) &&
-                (spell->HasEffect(SPELL_EFFECT_SCHOOL_DAMAGE) || spell->HasAura(SPELL_AURA_PERIODIC_DAMAGE)))
-                canFireWard = true;
+            if (baseId == ARCANE_BLAST_DEBUFF)
+                if (Aura* blas = me->GetAura(spell->Id))
+                    arcaneBlastStack = blas->GetStackAmount();
+
+            //Ward helper	
+            if (spell->HasEffect(SPELL_EFFECT_SCHOOL_DAMAGE) || spell->HasAura(SPELL_AURA_PERIODIC_DAMAGE))
+            {
+                if (!canFrostWard && (spell->GetSchoolMask() & SPELL_SCHOOL_MASK_FROST))
+                    canFrostWard = true;
+                if (!canFireWard && (spell->GetSchoolMask() & SPELL_SCHOOL_MASK_FIRE))
+                    canFireWard = true;
+            }
 
             OnSpellHit(caster, spell);
         }
@@ -1448,6 +1585,7 @@ public:
             fmCheckTimer = 0;
             iceblockCheckTimer = 0;
             shieldCheckTimer = 0;
+			arcaneBlastStack = 0;
             manaGemCharges = 0;
 
             poly = false;
@@ -1481,6 +1619,7 @@ public:
             InitSpellMap(AMPLIFYMAGIC_1);
             InitSpellMap(ARCANEINTELLECT_1);
             InitSpellMap(ARCANEMISSILES_1);
+			InitSpellMap(ARCANE_BLAST_1);
             InitSpellMap(POLYMORPH_1);
             InitSpellMap(COUNTERSPELL_1);
             InitSpellMap(SPELLSTEAL_1);
@@ -1512,6 +1651,8 @@ public:
             InitSpellMap(RITUAL_OF_REFRESHMENT_1); //not casted
 
   /*Talent*/lvl >= 20 ? InitSpellMap(FOCUS_MAGIC_1) : RemoveSpell(FOCUS_MAGIC_1);
+  /*Talent*/lvl >= 30 ? InitSpellMap(PRESENCE_OF_MIND_1) : RemoveSpell(PRESENCE_OF_MIND_1);
+  /*Talent*/lvl >= 40 ? InitSpellMap(ARCANE_POWER_1) : RemoveSpell(ARCANE_POWER_1);
 
   /*Talent*/lvl >= 20 ? InitSpellMap(PYROBLAST_1) : RemoveSpell(PYROBLAST_1);
   /*Talent*/lvl >= 30 && isFire ? InitSpellMap(BLAST_WAVE_1) : RemoveSpell(BLAST_WAVE_1);
@@ -1520,6 +1661,7 @@ public:
   /*Talent*/lvl >= 60 && isFire ? InitSpellMap(LIVING_BOMB_1) : RemoveSpell(LIVING_BOMB_1);
 
   /*Talent*/lvl >= 20 ? InitSpellMap(ICY_VEINS_1) : RemoveSpell(ICY_VEINS_1);
+  /*Talent*/lvl >= 30 && isFros ? InitSpellMap(COLD_SNAP_1) : RemoveSpell(COLD_SNAP_1);
   /*Talent*/lvl >= 40 && isFros ? InitSpellMap(ICE_BARRIER_1) : RemoveSpell(ICE_BARRIER_1);
   /*Talent*/lvl >= 50 && isFros ? InitSpellMap(SUMMON_WATER_ELEMENTAL_1) : RemoveSpell(SUMMON_WATER_ELEMENTAL_1);
   /*Talent*/lvl >= 60 && isFros ? InitSpellMap(DEEP_FREEZE_1) : RemoveSpell(DEEP_FREEZE_1);
@@ -1547,6 +1689,7 @@ public:
             RefreshAura(INCANTERS_ABSORPTION3, isArca && level >= 42 ? 1 : 0);
             RefreshAura(INCANTERS_ABSORPTION2, isArca && level >= 41 && level < 42 ? 1 : 0);
             RefreshAura(INCANTERS_ABSORPTION1, isArca && level >= 40 && level < 41 ? 1 : 0);
+			RefreshAura(MISSILE_BARRAGE, isArca && level >= 45 ? 1 : 0);
 
             RefreshAura(IGNITE, level >= 15 ? 1 : 0);
             RefreshAura(BURNING_DETERMINATION, level >= 15 ? 1 : 0);
@@ -1594,6 +1737,8 @@ public:
                 case EVOCATION_1:
                 case REMOVE_CURSE_1:
                 case FOCUS_MAGIC_1:
+				case PRESENCE_OF_MIND_1:
+                case ARCANE_POWER_1:
                 case ICE_ARMOR_1:
                 case ICE_BARRIER_1:
                 case COMBUSTION_1:
@@ -1603,6 +1748,7 @@ public:
                 case FROST_NOVA_1:
                 case BLIZZARD_1:
                 case ICE_BLOCK_1:
+				case COLD_SNAP_1:
                 case INVISIBILITY_1:
                 case SLOW_FALL_1:
                 case CONJURE_MANA_GEM_1:
@@ -1640,6 +1786,7 @@ public:
         //Timers
 /*exc.*/uint32 polyCheckTimer, fmCheckTimer, iceblockCheckTimer, shieldCheckTimer;
         //Counters
+/*exc.*/uint8 arcaneBlastStack;
 /*exc.*/uint8 manaGemCharges;
         //Check
 /*exc.*/bool poly, shielded, fbCasted;

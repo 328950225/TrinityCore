@@ -1609,7 +1609,7 @@ public:
                 {
                     if (itr->first == spellInfo->Id || itr->first == BESTIAL_WRATH_1 || itr->first == GIFT_OF_NAARU_HUNTER)
                         continue;
-                    if (itr->second->enabled && itr->second->spellId != 0 && itr->second->cooldown > 0)
+                    if (itr->second->spellId != 0 && itr->second->cooldown > 0)
                     {
                         cdInfo = sSpellMgr->GetSpellInfo(itr->first);
                         if (cdInfo && cdInfo->SpellFamilyName == SPELLFAMILY_HUNTER && cdInfo->GetRecoveryTime() > 0)

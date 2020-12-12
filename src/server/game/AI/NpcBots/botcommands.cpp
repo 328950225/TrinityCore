@@ -905,6 +905,77 @@ public:
         return true;
     }
 
+    static bool HandleNpcBotMoveCommand(ChatHandler* handler, const char* args)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+        Creature* creature = handler->getSelectedCreature();
+
+        if (!*args && !creature)
+        {
+            handler->SendSysMessage(".npcbot move");
+            handler->SendSysMessage("Moves npcbot to your location");
+            handler->SendSysMessage("Syntax: .npcbot move [#ID]");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        char* charID = *args ? handler->extractKeyFromLink((char*)args, "Hcreature_entry") : nullptr;
+        if (!charID && !creature)
+            return false;
+
+        uint32 id = charID ? atoi(charID) : creature->GetEntry();
+
+        CreatureTemplate const* creInfo = sObjectMgr->GetCreatureTemplate(id);
+        if (!creInfo)
+        {
+            handler->PSendSysMessage("creature id %u does not exist!", id);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (!(creInfo->flags_extra & CREATURE_FLAG_EXTRA_NPCBOT))
+        {
+            handler->PSendSysMessage("creature id %u is not a npcbot!", id);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (!BotDataMgr::SelectNpcBotData(id))
+        {
+            handler->PSendSysMessage("NpcBot %u is not spawned!", id);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        Creature const* bot = BotDataMgr::FindBot(id);
+        ASSERT(bot);
+
+        uint32 lowguid = bot->GetSpawnId();
+
+        CreatureData const* data = sObjectMgr->GetCreatureData(lowguid);
+        if (!data)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_CREATGUIDNOTFOUND, lowguid);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        CreatureData* cdata = const_cast<CreatureData*>(data);
+        cdata->spawnPoint.Relocate(player);
+        cdata->spawnPoint.SetOrientation(player->GetOrientation());
+        cdata->mapId = player->GetMapId();
+
+        WorldDatabase.PExecute(
+            "UPDATE creature SET position_x = %.3f, position_y = %.3f, position_z = %.3f, orientation = %.3f, map = %u WHERE guid = %u",
+            cdata->spawnPoint.GetPositionX(), cdata->spawnPoint.GetPositionY(), cdata->spawnPoint.GetPositionZ(), cdata->spawnPoint.GetOrientation(), uint32(cdata->mapId), lowguid);
+
+        if (bot->GetBotAI()->IAmFree() && bot->IsInWorld() && !bot->IsInCombat() && bot->IsAlive())
+            BotMgr::TeleportBot(const_cast<Creature*>(bot), player->GetMap(), player);
+
+        handler->PSendSysMessage("NpcBot %u (guid %u) was moved", id, lowguid);
+        return true;
+    }
+
     static bool HandleNpcBotSpawnCommand(ChatHandler* handler, const char* args)
     {
         if (!*args)
