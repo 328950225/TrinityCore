@@ -1753,6 +1753,11 @@ public:
             }
 
             botPet = myPet;
+			if (/* GetSpell(SOUL_LINK_PET) */GetSpec() == BOT_SPEC_WARLOCK_DEMONOLOGY  && me->GetLevel() >= 20)
+            {
+                botPet->CastSpell(botPet, SOUL_LINK_PET, false);
+                return;
+            }
         }
 
         void UnsummonAll() override
@@ -1880,7 +1885,7 @@ public:
         {
             uint8 lvl = me->GetLevel();
             bool isAffl = _spec == BOT_SPEC_WARLOCK_AFFLICTION;
-            //bool isDemo = _spec == BOT_SPEC_WARLOCK_DEMONOLOGY;
+            bool isDemo = _spec == BOT_SPEC_WARLOCK_DEMONOLOGY;
             bool isDest = _spec == BOT_SPEC_WARLOCK_DESTRUCTION;
 
             InitSpellMap(CURSE_OF_WEAKNESS_1);

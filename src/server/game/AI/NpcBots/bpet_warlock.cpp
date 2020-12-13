@@ -82,11 +82,11 @@ public:
 
         void DoPetActions(uint32 diff)
         {
-            if (GetSpell(SOUL_LINK_PET) && !petOwner->HasAuraTypeWithCaster(SPELL_AURA_SPLIT_DAMAGE_PCT, me->GetGUID()))
+            /* if (GetSpell(SOUL_LINK_PET) && !petOwner->HasAuraTypeWithCaster(SPELL_AURA_SPLIT_DAMAGE_PCT, me->GetGUID()))
             {
                 me->CastSpell(me, SOUL_LINK_PET, false);
                 return;
-            }
+            } */
             if (myType == BOT_PET_IMP)
             {
                 //hacked - confilct with soul link due to ownerGuid mismatch
