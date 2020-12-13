@@ -31,6 +31,7 @@ enum MageBaseSpells
     BLINK_1                             = 1953,
     REMOVE_CURSE_1                      = 475,
     INVISIBILITY_1                      = 66,
+	SCORCH_1                            = 2948,
     BLAST_WAVE_1                        = 11113,
     DRAGON_BREATH_1                     = 31661,
     FIRE_BLAST_1                        = 2136,
@@ -86,6 +87,7 @@ enum MagePassives
     TORMENT_THE_WEAK                    = 55340,//rank 3
     IMPACT                              = 12358,//rank 3
     IMPROVED_BLIZZARD                   = 12488,//rank 3
+	IMPROVED_SCORCH                     = 12873,//rank 3
     MOLTEN_SHIELDS                      = 13043,//rank 2
     MASTER_OF_ELEMENTS                  = 29076,//rank 3
     SHATTER1                            = 11170,
@@ -140,7 +142,8 @@ enum MageSpecial
 
 static const uint32 Mage_spells_damage_arr[] =
 { ARCANEMISSILES_1, ARCANE_BLAST_1, BLAST_WAVE_1, BLIZZARD_1, CONE_OF_COLD_1, DEEP_FREEZE_1, DRAGON_BREATH_1, FIREBALL_1,
-FIRE_BLAST_1, FLAMESTRIKE_1, FROSTBOLT_1, FROSTFIRE_BOLT_1, FROST_NOVA_1, ICE_LANCE_1, LIVING_BOMB_1, PYROBLAST_1 };
+FIRE_BLAST_1, FLAMESTRIKE_1, FROSTBOLT_1, FROSTFIRE_BOLT_1, FROST_NOVA_1, ICE_LANCE_1, LIVING_BOMB_1, PYROBLAST_1,
+SCORCH_1 };
 
 static const uint32 Mage_spells_cc_arr[] =
 { COUNTERSPELL_1, DRAGON_BREATH_1, DEEP_FREEZE_1, FROST_NOVA_1, POLYMORPH_1 };
@@ -299,7 +302,7 @@ public:
             //ARMOR
             uint32 MOLTENARMOR = HasRole(BOT_ROLE_DPS) ? GetSpell(MOLTEN_ARMOR_1) : GetSpell(ICE_ARMOR_1);
             uint32 ICEARMOR = GetSpell(ICE_ARMOR_1) ? GetSpell(ICE_ARMOR_1) : GetSpell(FROST_ARMOR_1);
-            uint32 ARMOR = !MOLTENARMOR ? ICEARMOR : me->GetMap()->IsDungeon() ? MOLTENARMOR : ICEARMOR;
+            uint32 ARMOR = !MOLTENARMOR ? ICEARMOR : (me->GetMap()->IsDungeon() || !ICEARMOR) ? MOLTENARMOR : ICEARMOR;
             if (ARMOR && !me->HasAura(ARMOR))
             {
                 if (doCast(me, ARMOR))
@@ -498,10 +501,17 @@ public:
                 if (doCast(opponent, GetSpell(PYROBLAST_1)))
                     return;
             }
+			//Scorch
+            if (IsSpellReady(SCORCH_1, diff) && GetSpec() == BOT_SPEC_MAGE_FIRE && dist < CalcSpellMaxRange(SCORCH_1) &&
+                !opponent->GetAuraEffect(SPELL_AURA_MOD_ATTACKER_SPELL_CRIT_CHANCE, SPELLFAMILY_MAGE, 0x0, 0x2000, 0x0))
+            {
+                if (doCast(opponent, GetSpell(SCORCH_1)))
+                    return;
+            }
             //Living Bomb
-            if (fbCasted && IsSpellReady(LIVING_BOMB_1, diff) && dist < CalcSpellMaxRange(LIVING_BOMB_1) &&
+            if ((!opponent->IsControlledByPlayer() || fbCasted) && IsSpellReady(LIVING_BOMB_1, diff) && dist < CalcSpellMaxRange(LIVING_BOMB_1) &&
                 opponent->GetHealth() > me->GetHealth() / 2 * opponent->getAttackers().size() &&
-                Rand() < 25 && !opponent->HasAura(GetSpell(LIVING_BOMB_1), me->GetGUID()))
+                Rand() < 115 && !opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_MAGE, 0x0, 0x20000, 0x0, me->GetGUID()))
             {
                 if (doCast(opponent, GetSpell(LIVING_BOMB_1)))
                     return;
@@ -919,7 +929,7 @@ public:
                 baseId == LIVING_BOMB_1 || baseId == LIVING_BOMB_DAMAGE_1))
                 crit_chance += 6.f;
             //Improved Scorch part 1: 3% additional critical chance for Scorch, Fireball and Frostfire Bolt
-            if (lvl >= 20 && (/*baseId == SCORCH_1 || */baseId == FIREBALL_1 || baseId == FROSTFIRE_BOLT_1))
+            if (lvl >= 20 && (baseId == SCORCH_1 || baseId == FIREBALL_1 || baseId == FROSTFIRE_BOLT_1))
                 crit_chance += 3.f;
             //Critical Mass: 6% additional critical chance for Fire spells
             if ((_spec == BOT_SPEC_MAGE_FIRE) && lvl >= 30 && (SPELL_SCHOOL_MASK_FIRE & spellInfo->GetSchoolMask()))
@@ -960,7 +970,7 @@ public:
 
             //Spell Impact: 6% bonus damage for Arcne Explosion, Arcane Blast, Scorch, Fireball, Ice Lance and Cone of Cold
             if (lvl >= 20 &&
-                (/*baseId == ARCANE_EXPLOSION_1 || baseId == SCORCH_1 ||*/
+                (/*baseId == ARCANE_EXPLOSION_1 || */baseId == SCORCH_1 ||
                 baseId == ARCANE_BLAST_1 || baseId == FIREBALL_1 ||
                 baseId == ICE_LANCE_1 || baseId == CONE_OF_COLD_1))
                 pctbonus += 0.06f;
@@ -1259,7 +1269,7 @@ public:
             /*if (spellId != FROSTBITE_TRIGGERED && spellId != WINTERS_CHILL_TRIGGERED && spellId != IGNITE_TRIGGERED &&
                 spellId != ARCANE_CONCENTRATION_BUFF && spellId != ARCANE_POTENCY_BUFF1 && spellId != ARCANE_POTENCY_BUFF2 &&
                 spellId != FIRESTARTER_BUFF && spellId != BRAIN_FREEZE_BUFF && spellId != HOT_STREAK_BUFF)*/
-                fbCasted = (baseId == FROSTBOLT_1 || baseId == FIREBALL_1 || baseId == FROSTFIRE_BOLT_1);
+                fbCasted = (baseId == SCORCH_1 || baseId == FROSTBOLT_1 || baseId == FIREBALL_1 || baseId == FROSTFIRE_BOLT_1);
 
             //Handle clearcasting
             if (AuraEffect const* eff = me->GetAuraEffect(ARCANE_CONCENTRATION_BUFF, 0, me->GetGUID()))
@@ -1627,6 +1637,7 @@ public:
             InitSpellMap(BLINK_1);
             InitSpellMap(REMOVE_CURSE_1);
             InitSpellMap(INVISIBILITY_1);
+			InitSpellMap(SCORCH_1);
             InitSpellMap(FIRE_BLAST_1);
             InitSpellMap(FLAMESTRIKE_1);
             InitSpellMap(DAMPENMAGIC_1);
@@ -1694,6 +1705,7 @@ public:
             RefreshAura(IGNITE, level >= 15 ? 1 : 0);
             RefreshAura(BURNING_DETERMINATION, level >= 15 ? 1 : 0);
             RefreshAura(IMPACT, level >= 20 ? 1 : 0);
+			RefreshAura(IMPROVED_SCORCH, level >= 25 ? 1 : 0);
             RefreshAura(MOLTEN_SHIELDS, level >= 25 ? 1 : 0);
             RefreshAura(MASTER_OF_ELEMENTS, level >= 25 ? 1 : 0);
             RefreshAura(BLAZING_SPEED, isFire && level >= 35 ? 1 : 0);

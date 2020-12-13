@@ -970,7 +970,7 @@ public:
                     //opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_WARLOCK, 0x4, 0x0, 0x0) &&
                     //opponent->GetAuraEffect(SPELL_AURA_MOD_ATTACKER_SPELL_CRIT_CHANCE, SPELLFAMILY_WARLOCK, 213, 0) &&
                     //(me->GetMap()->IsRaid() || !me->HasAura(SHADOW_TRANCE_BUFF)) ?
-                    INCINERATE_1 : 0;
+                    INCINERATE_1 : SHADOW_BOLT_1;;
 
                 if (boltinerate && doCast(opponent, GetSpell(boltinerate)))
                     return;
