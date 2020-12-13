@@ -395,7 +395,7 @@ public:
 
             float dist = me->GetDistance(opponent);
 
-            //COMBUSTION (no GCD)
+            //COMBUSTION (no GCD)中文：燃烧英文：Combustion
             if (IsSpellReady(COMBUSTION_1, diff, false) && GetManaPCT(me) > 20 &&
                 (opponent->GetMaxHealth() > master->GetMaxHealth() * 4 ||
                 m_attackers.size() > 1 || b_attackers.size() > 1) &&
@@ -406,7 +406,7 @@ public:
                 if (doCast(me, GetSpell(COMBUSTION_1)))
                     return;
             }
-            //ICY VEINS (no GCD)
+            //ICY VEINS (no GCD)中文：冰冷血脉英文：Icy Veins
             if (IsSpellReady(ICY_VEINS_1, diff, false) && GetManaPCT(me) > 20 &&
                 (opponent->GetMaxHealth() > master->GetMaxHealth() * 2 ||
                 (opponent->GetTypeId() == TYPEID_UNIT && opponent->ToCreature()->GetCreatureTemplate()->rank != CREATURE_ELITE_NORMAL)) &&
@@ -415,7 +415,7 @@ public:
                 if (doCast(me, GetSpell(ICY_VEINS_1)))
                     return;
             }
-            //ARCANE POWER (no GCD, not with PoM)
+            //ARCANE POWER (no GCD, not with PoM)中文：奥术强化英文：Arcane Power
             if (IsSpellReady(ARCANE_POWER_1, diff, false) && GetManaPCT(me) > 50 &&
                 (opponent->GetMaxHealth() > master->GetMaxHealth() * 2 ||
                 (opponent->GetTypeId() == TYPEID_UNIT && opponent->ToCreature()->GetCreatureTemplate()->rank != CREATURE_ELITE_NORMAL)) &&
@@ -424,7 +424,7 @@ public:
                 if (doCast(me, GetSpell(ARCANE_POWER_1)))
                     return;
             }
-            //PRESENCE OF MIND (no GCD, not with AP)
+            //PRESENCE OF MIND (no GCD, not with AP)气定神闲
             if (IsSpellReady(PRESENCE_OF_MIND_1, diff, false) && GetManaPCT(me) > 10 && Rand() < 35 &&
                 !me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x80000, 0x0))
             {
@@ -443,7 +443,7 @@ public:
                 if (!targets.empty())
                 {
                     bool oneOnOne = (*targets.begin()) == opponent;
-                    //Frost Nova
+                    //Frost Nova中文：冰霜新星英文：Frost Nova
                     if (IsSpellReady(FROST_NOVA_1, diff) && (targets.size() > 1 || oneOnOne))
                     {
                         if (doCast(me, GetSpell(FROST_NOVA_1)))
@@ -452,7 +452,7 @@ public:
                             return;
                         }
                     }
-                    //Blast Wave
+                    //Blast Wave中文：冲击波英文：Blast Wave
                     else if (IsSpellReady(BLAST_WAVE_1, diff) && (targets.size() > 1 || oneOnOne))
                     {
                         if (doCast(me, GetSpell(BLAST_WAVE_1)))
@@ -467,13 +467,13 @@ public:
                 GetNearbyTargetsInConeList(targets, 8); //both are radius 10 yd
                 if (!targets.empty())
                 {
-                    //Cone of Cold
+                    //Cone of Cold中文：冰锥术英文：Cone of Cold
                     if (IsSpellReady(CONE_OF_COLD_1, diff))
                     {
                         if (doCast(me, GetSpell(CONE_OF_COLD_1)))
                             return;
                     }
-                    //Dragon's Breath
+                    //Dragon's Breath中文：龙息术英文：Dragon's Breath
                     else if (IsSpellReady(DRAGON_BREATH_1, diff))
                     {
                         if (doCast(me, GetSpell(DRAGON_BREATH_1)))
@@ -485,7 +485,7 @@ public:
             if (!CanAffectVictim(SPELL_SCHOOL_MASK_FROST|SPELL_SCHOOL_MASK_FIRE|SPELL_SCHOOL_MASK_ARCANE))
                 return;
 
-            //spell reflections: Ice Lance instant / Frostbolt Rank 1
+            //spell reflections: Ice Lance instant / Frostbolt Rank 1 冰枪术
             if (IsSpellReady(ICE_LANCE_1, diff) && dist < CalcSpellMaxRange(ICE_LANCE_1) && CanRemoveReflectSpells(opponent, ICE_LANCE_1) &&
                 doCast(opponent, ICE_LANCE_1))
                 return;
@@ -493,7 +493,7 @@ public:
                 doCast(opponent, FROSTBOLT_1))
                 return;
 
-            //Pyroblast TODO: PoM
+            //Pyroblast TODO: PoM炎爆术
             if (IsSpellReady(PYROBLAST_1, diff) && dist < CalcSpellMaxRange(PYROBLAST_1) &&
 			    ((opponent->IsPolymorphed() && (b_attackers.size() < 2 || (*b_attackers.begin()) == opponent)) ||
                 me->HasAura(HOT_STREAK_BUFF) || (me->HasAura(PRESENCE_OF_MIND_1) && (GetSpec() != BOT_SPEC_MAGE_ARCANE || !GetSpell(ARCANE_BLAST_1)))))
@@ -501,14 +501,14 @@ public:
                 if (doCast(opponent, GetSpell(PYROBLAST_1)))
                     return;
             }
-			//Scorch
+			//Scorch灼烧
             if (IsSpellReady(SCORCH_1, diff) && GetSpec() == BOT_SPEC_MAGE_FIRE && dist < CalcSpellMaxRange(SCORCH_1) &&
                 !opponent->GetAuraEffect(SPELL_AURA_MOD_ATTACKER_SPELL_CRIT_CHANCE, SPELLFAMILY_MAGE, 0x0, 0x2000, 0x0))
             {
                 if (doCast(opponent, GetSpell(SCORCH_1)))
                     return;
             }
-            //Living Bomb
+            //Living Bomb活动炸弹
             if ((!opponent->IsControlledByPlayer() || fbCasted) && IsSpellReady(LIVING_BOMB_1, diff) && dist < CalcSpellMaxRange(LIVING_BOMB_1) &&
                 opponent->GetHealth() > me->GetHealth() / 2 * opponent->getAttackers().size() &&
                 Rand() < 115 && !opponent->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_MAGE, 0x0, 0x20000, 0x0, me->GetGUID()))
@@ -516,29 +516,39 @@ public:
                 if (doCast(opponent, GetSpell(LIVING_BOMB_1)))
                     return;
             }
-            //Fire Blast (do not waste mana in raids)
+           /* //Fire Blast (do not waste mana in raids)
             if (IsSpellReady(FIRE_BLAST_1, diff) && dist < CalcSpellMaxRange(FIRE_BLAST_1) &&
                 opponent->GetHealth() < me->GetMaxHealth()*4 && (fbCasted || opponent->GetHealth() < me->GetMaxHealth() / 4) &&
                 Rand() < (30 + 40*fbCasted + 80*(!opponent->IsFrozen() && !opponent->HasUnitState(UNIT_STATE_STUNNED) && me->HasAura(IMPACT_BUFF))))
             {
                 if (doCast(opponent, GetSpell(FIRE_BLAST_1)))
                     return;
+            }*/
+            //Fire Blast (do not waste mana in raids)火焰冲击
+            if (IsSpellReady(FIRE_BLAST_1, diff) 
+                && dist < CalcSpellMaxRange(FIRE_BLAST_1) 
+                && Rand() < (30 + 40*fbCasted + 80*(!opponent->IsFrozen() 
+                && !opponent->HasUnitState(UNIT_STATE_STUNNED) )))
+            {
+                if (doCast(opponent, GetSpell(FIRE_BLAST_1)))
+                    return;
             }
-            //Deep Freeze (damage only)
+            
+            //Deep Freeze (damage only)深度冻结
             if (fbCasted && IsSpellReady(DEEP_FREEZE_1, diff) && dist < CalcSpellMaxRange(DEEP_FREEZE_1) && Rand() < 30 &&
                 opponent->IsImmunedToSpellEffect(sSpellMgr->GetSpellInfo(DEEP_FREEZE_1), 0, me) && (opponent->IsFrozen() || me->HasAuraType(SPELL_AURA_ABILITY_IGNORE_AURASTATE)))
             {
                 if (doCast(opponent, GetSpell(DEEP_FREEZE_1)))
                     return;
             }
-            //Flamestrike (instant cast only)
+            //Flamestrike (instant cast only)中文：烈焰风暴英文：Flamestrike
             if (/*fbCasted && */IsSpellReady(FLAMESTRIKE_1, diff) && dist < CalcSpellMaxRange(FLAMESTRIKE_1) && Rand() < 80 &&
                 me->HasAura(FIRESTARTER_BUFF))
             {
                 if (doCast(opponent, GetSpell(FLAMESTRIKE_1)))
                     return;
             }
-            //Blizzard
+            //Blizzard中文：暴风雪英文：Blizzard
             if (IsSpellReady(BLIZZARD_1, diff) && !JumpingOrFalling() && Rand() < 50)
             {
                 if (Unit* blizztarget = FindAOETarget(CalcSpellMaxRange(BLIZZARD_1)))
@@ -550,7 +560,7 @@ public:
                 SetSpellCooldown(BLIZZARD_1, 1500); //fail
             }
 
-            //Ice Lance (no cd, only GCD)
+            //Ice Lance (no cd, only GCD)中文：冰枪术英文：Ice Lance
             if (fbCasted && (!me->GetMap()->IsDungeon() || opponent->IsControlledByPlayer()) &&
                 IsSpellReady(ICE_LANCE_1, diff) && dist < CalcSpellMaxRange(ICE_LANCE_1) &&
                 (opponent->IsFrozen() || me->HasAuraType(SPELL_AURA_ABILITY_IGNORE_AURASTATE)))
@@ -558,7 +568,7 @@ public:
                 if (doCast(opponent, GetSpell(ICE_LANCE_1)))
                     return;
             }
-            //Fireball or Frostfire Bolt (instant cast or combustion use up)
+            //Fireball or Frostfire Bolt (instant cast or combustion use up)//火球 霜火箭 中文：思维冷却英文：Brain Freeze
             if (/*fbCasted && */IsSpellReady(FROSTFIREBOLT, diff) && dist < CalcSpellMaxRange(FROSTFIREBOLT) && Rand() < 150 &&
                 ((((CCed(opponent, true) || b_attackers.empty()) && me->HasAura(COMBUSTION_BUFF)) || me->HasAura(BRAIN_FREEZE_BUFF)) ||
                 !GetSpell(FROSTBOLT_1))) //level 1-3
@@ -567,7 +577,7 @@ public:
                     return;
             }
             //Main rotation
-            //Arcane Missiles (arcane spec only)
+            //Arcane Missiles (arcane spec only)中文：奥术飞弹英文：Arcane Missiles
             if (IsSpellReady(ARCANEMISSILES_1, diff) && _spec == BOT_SPEC_MAGE_ARCANE && dist < CalcSpellMaxRange(ARCANEMISSILES_1) &&
                 (me->GetLevel() < 45 || ((arcaneBlastStack >= 3 ||
                 sSpellMgr->GetSpellInfo(ARCANE_BLAST_1)->CalcPowerCost(me, SPELL_SCHOOL_MASK_ARCANE) > int(me->GetPower(POWER_MANA))) &&
@@ -576,18 +586,21 @@ public:
                 if (doCast(opponent, GetSpell(ARCANEMISSILES_1)))
                     return;
             }
+            //中文：奥术冲击英文：Arcane Blast
             if (IsSpellReady(ARCANE_BLAST_1, diff) && _spec == BOT_SPEC_MAGE_ARCANE && dist < CalcSpellMaxRange(ARCANE_BLAST_1) &&
                 (arcaneBlastStack < 4 || !me->GetAuraEffect(SPELL_AURA_ADD_FLAT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x2, 0x0)))
             {
                 if (doCast(opponent, GetSpell(ARCANE_BLAST_1)))
                     return;
             }
-            if (IsSpellReady(FROSTFIREBOLT, diff) && (_spec == BOT_SPEC_MAGE_FIRE || !GetSpell(ARCANE_BLAST_1)) &&
+            //中文：霜火之箭英文：Frostfire Bolt
+            if (IsSpellReady(FROSTFIREBOLT, diff) && _spec == BOT_SPEC_MAGE_FIRE && !GetSpell(ARCANE_BLAST_1) &&
                 dist < CalcSpellMaxRange(FROSTFIREBOLT))
             {
                 if (doCast(opponent, GetSpell(FROSTFIREBOLT)))
                     return;
             }
+            //中文：寒冰箭英文：Frostbolt
             if (IsSpellReady(FROSTBOLT_1, diff) && _spec == BOT_SPEC_MAGE_FROST && dist < CalcSpellMaxRange(FROSTBOLT_1))
             {
                 if (doCast(opponent, GetSpell(FROSTBOLT_1)))
@@ -598,7 +611,7 @@ public:
             {
                 if (shot->GetSpellInfo()->Id == SHOOT_WAND && shot->m_targets.GetUnitTarget() != opponent)
                     me->InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
-            }
+            }//手杖攻击
             else if (IsSpellReady(SHOOT_WAND, diff) && me->GetDistance(opponent) < 30 && GetEquips(BOT_SLOT_RANGED) &&
                 doCast(opponent, SHOOT_WAND))
                 return;
