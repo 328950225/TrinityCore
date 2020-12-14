@@ -45,6 +45,7 @@ enum MageBaseSpells
     FROST_NOVA_1                        = 122,
     CONE_OF_COLD_1                      = 120,
     BLIZZARD_1                          = 10,
+    Mage_Armor_1                        = 6117,
     FROST_ARMOR_1                       = 168,
     ICE_ARMOR_1                         = 7302,
     MOLTEN_ARMOR_1                      = 30482,
@@ -150,7 +151,7 @@ static const uint32 Mage_spells_cc_arr[] =
 
 static const uint32 Mage_spells_support_arr[] =
 { AMPLIFYMAGIC_1, ARCANEINTELLECT_1, BLINK_1, COMBUSTION_1, DAMPENMAGIC_1, EVOCATION_1, FIRE_WARD_1, FROST_WARD_1,
-FROST_ARMOR_1, FOCUS_MAGIC_1, ICE_BARRIER_1, ICE_BLOCK_1, ICY_VEINS_1, INVISIBILITY_1, ICE_ARMOR_1, MOLTEN_ARMOR_1,
+FROST_ARMOR_1, FOCUS_MAGIC_1, ICE_BARRIER_1, ICE_BLOCK_1, ICY_VEINS_1, INVISIBILITY_1, ICE_ARMOR_1,Mage_Armor_1, MOLTEN_ARMOR_1,
 SLOW_FALL_1, SPELLSTEAL_1, REMOVE_CURSE_1, CONJURE_MANA_GEM_1, RITUAL_OF_REFRESHMENT_1, SUMMON_WATER_ELEMENTAL_1,
 COLD_SNAP_1, PRESENCE_OF_MIND_1, ARCANE_POWER_1 };
 
@@ -299,10 +300,14 @@ public:
                     return;
             }
 
-            //ARMOR
-            uint32 MOLTENARMOR = HasRole(BOT_ROLE_DPS) ? GetSpell(MOLTEN_ARMOR_1) : GetSpell(ICE_ARMOR_1);
-            uint32 ICEARMOR = GetSpell(ICE_ARMOR_1) ? GetSpell(ICE_ARMOR_1) : GetSpell(FROST_ARMOR_1);
-            uint32 ARMOR = !MOLTENARMOR ? ICEARMOR : (me->GetMap()->IsDungeon() || !ICEARMOR) ? MOLTENARMOR : ICEARMOR;
+            //ARMOR 护甲buff中文：熔岩护甲英文：Molten Armor
+            bool isArca = _spec == BOT_SPEC_MAGE_ARCANE;
+            bool isFire = _spec == BOT_SPEC_MAGE_FIRE;
+            bool isFros = _spec == BOT_SPEC_MAGE_FROST;
+            uint32 ICEARMOR = GetSpell(ICE_ARMOR_1) ? GetSpell(ICE_ARMOR_1) : GetSpell(FROST_ARMOR_1);//冰霜
+			uint32 MOLTENARMOR = GetSpell(MOLTEN_ARMOR_1) ? GetSpell(MOLTEN_ARMOR_1) : ICEARMOR;//火焰
+            uint32 mageARMOR = GetSpell(Mage_Armor_1) ? GetSpell(Mage_Armor_1):ICEARMOR;//奥术
+            uint32 ARMOR = isFros ? ICEARMOR : isArca?mageARMOR:isFire?MOLTENARMOR:ICEARMOR;
             if (ARMOR && !me->HasAura(ARMOR))
             {
                 if (doCast(me, ARMOR))
@@ -464,7 +469,7 @@ public:
             if (/*fbCasted && */(IsSpellReady(CONE_OF_COLD_1, diff) || IsSpellReady(DRAGON_BREATH_1, diff)) && Rand() < 65)
             {
                 std::list<Unit*> targets;
-                GetNearbyTargetsInConeList(targets, 8); //both are radius 10 yd
+                GetNearbyTargetsInConeList(targets, 4); //both are radius 10 yd
                 if (!targets.empty())
                 {
                     //Cone of Cold中文：冰锥术英文：Cone of Cold
@@ -1634,7 +1639,7 @@ public:
         void InitSpells() override
         {
             uint8 lvl = me->GetLevel();
-            //bool isArca = _spec == BOT_SPEC_MAGE_ARCANE;
+            bool isArca = _spec == BOT_SPEC_MAGE_ARCANE;
             bool isFire = _spec == BOT_SPEC_MAGE_FIRE;
             bool isFros = _spec == BOT_SPEC_MAGE_FROST;
 
@@ -1680,6 +1685,7 @@ public:
 
   /*Talent*/lvl >= 20 ? InitSpellMap(PYROBLAST_1) : RemoveSpell(PYROBLAST_1);
   /*Talent*/lvl >= 30 && isFire ? InitSpellMap(BLAST_WAVE_1) : RemoveSpell(BLAST_WAVE_1);
+            lvl >= 34 ? InitSpellMap(Mage_Armor_1) : RemoveSpell(Mage_Armor_1);
   /*Talent*/lvl >= 40 && isFire ? InitSpellMap(DRAGON_BREATH_1) : RemoveSpell(DRAGON_BREATH_1);
   /*Talent*/lvl >= 50 && isFire ? InitSpellMap(COMBUSTION_1) : RemoveSpell(COMBUSTION_1);
   /*Talent*/lvl >= 60 && isFire ? InitSpellMap(LIVING_BOMB_1) : RemoveSpell(LIVING_BOMB_1);
@@ -1690,7 +1696,7 @@ public:
   /*Talent*/lvl >= 50 && isFros ? InitSpellMap(SUMMON_WATER_ELEMENTAL_1) : RemoveSpell(SUMMON_WATER_ELEMENTAL_1);
   /*Talent*/lvl >= 60 && isFros ? InitSpellMap(DEEP_FREEZE_1) : RemoveSpell(DEEP_FREEZE_1);
 
-            InitSpellMap(FROSTFIRE_BOLT_1);
+            lvl > 74 ? InitSpellMap(FROSTFIRE_BOLT_1):RemoveSpell(FROSTFIRE_BOLT_1);
             InitSpellMap(FIREBALL_1);
             FROSTFIREBOLT = GetSpell(FROSTFIRE_BOLT_1) ? FROSTFIRE_BOLT_1 : FIREBALL_1;
         }
@@ -1765,6 +1771,7 @@ public:
 				case PRESENCE_OF_MIND_1:
                 case ARCANE_POWER_1:
                 case ICE_ARMOR_1:
+                case Mage_Armor_1:
                 case ICE_BARRIER_1:
                 case COMBUSTION_1:
                 case ICY_VEINS_1:
