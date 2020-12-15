@@ -3736,9 +3736,37 @@ void bot_ai::_updateMountedState()
             me->BotStopMovement();
             if (_botclass == BOT_CLASS_DRUID && me->GetShapeshiftForm() != FORM_NONE)
                 removeShapeshiftForm();
-            if (doCast(me, mount))
-            { }
+            /* if (doCast(me, mount))
+            {  */
+                PlayerSpellMap const& spells = master->GetSpellMap();
+				int spellCount = 0;
+                uint32 point[150];
+                for (PlayerSpellMap::const_iterator iter = spells.begin(); iter != spells.end(); ++iter)
+                {
+                   
+                    SkillLineAbilityMapBounds bounds = sSpellMgr->GetSkillLineAbilityMapBounds(iter->first);
+                    for (SkillLineAbilityMap::const_iterator _spell_idx = bounds.first; _spell_idx != bounds.second; ++_spell_idx)
+                    {
+                        if (_spell_idx->second->SkillLine != SKILL_MOUNTS)
+                            continue; 
+						
+						point[spellCount] = _spell_idx->second->Spell;
+						++spellCount;
+						//TC_LOG_INFO("server", "spell %u ",point[spellCount-1]);
+						if(spellCount>150)
+						   break;
+                    }
+                     
+				}
+                srand((unsigned)time(NULL)+me->GetMaxHealth());
+				int num = rand() % (spellCount); 
+				doCast(me, point[num]);
+                mount = point[num]; 
+				if(mount)
+				   doCast(me, mount);
 
+		        //delete []point;
+		    //}
             //RemoveSpell(mount);
         }
     }
@@ -11242,7 +11270,7 @@ bool bot_ai::AddOrder(BotOrder const* order)
 {
     if (_orders.size() >= MAX_BOT_ORDERS_QUEUE_SIZE)
     {
-        TC_LOG_ERROR("scripts", "bot_ai::AddOrder: orders limit reached for %s (%u)!", me->GetName().c_str(), _orders.size());
+        TC_LOG_ERROR("scripts", "bot_ai::AddOrder: orders limit reached for %s (%lu)!", me->GetName().c_str(), _orders.size());
         return false;
     }
 
