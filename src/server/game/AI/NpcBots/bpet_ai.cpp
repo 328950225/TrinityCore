@@ -2205,7 +2205,8 @@ bool bot_pet_ai::GlobalUpdate(uint32 diff)
 
     if (HasBotCommandState(BOT_COMMAND_FULLSTOP))
         return false;
-
+    if (HasBotCommandState(BOT_COMMAND_MASK_UNMOVING)&&GetBotCommandState()!=petOwner->GetBotAI()->GetBotCommandState())
+		SetBotCommandState(BOT_COMMAND_FOLLOW, true, &pos);
     CheckAttackState();
 
     if (checkAurasTimer <= lastdiff)
