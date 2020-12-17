@@ -859,8 +859,18 @@ void bot_ai::_calculatePos(Position& pos) const
     mydist += std::max<float>(int8(followdist) - 30, 5) / 7.f; //1.f-10.f
     mydist = std::max<float>(mydist - 2.f, 0.0f); //get bots closer
     angle += master->GetOrientation();
+    
+	float x(0),y(0),z(master->GetPositionZ());
+	
+	//plan ahead
+	uint32 movFlags = master->m_movementInfo.GetMovementFlags();
+    if ((movFlags & MOVEMENTFLAG_FORWARD) && !(movFlags & MOVEMENTFLAG_FALLING_FAR))
+    {
+        float const aheadDist = std::max<float>(followdist * 0.08, 6.f);
+        x += aheadDist * std::cos(master->GetOrientation());
+        y += aheadDist * std::sin(master->GetOrientation());
+    }
 
-    float x(0),y(0),z(master->GetPositionZ());
     float size = me->GetCombatReach()/3.f;
     bool over = false;
     for (uint8 i = 0; i != 5 + over; ++i)
@@ -870,7 +880,8 @@ void bot_ai::_calculatePos(Position& pos) const
             mydist *= 0.2f;
             break;
         }
-        //master->GetNearPoint(me, x, y, z, mydist, angle);
+        me->MovePositionToFirstCollision(pos,0.f, angle);
+		//master->GetNearPoint(me, x, y, z, mydist+size, angle);
         master->GetNearPoint2D(nullptr, x, y, mydist+size, angle);
         if (!master->IsWithinLOS(x,y,z)) //try to get much closer to master
         {
@@ -883,23 +894,14 @@ void bot_ai::_calculatePos(Position& pos) const
             over = true;
     }
 
-    //plan ahead
-    uint32 movFlags = master->m_movementInfo.GetMovementFlags();
-    if ((movFlags & MOVEMENTFLAG_FORWARD) && !(movFlags & MOVEMENTFLAG_FALLING_FAR))
-    {
-        float const aheadDist = std::max<float>(followdist * 0.08, 6.f);
-        x += aheadDist * std::cos(master->GetOrientation());
-        y += aheadDist * std::sin(master->GetOrientation());
-    }
-    if (!me->CanFly())
+/* 	if (!me->CanFly())
         me->UpdateGroundPositionZ(x, y, z);
     if (me->GetPositionZ() < z)
-        z += 0.5f; //prevent going underground
-
+        z += 0.5f; //prevent going underground */
     pos.m_positionX = x;
     pos.m_positionY = y;
     pos.m_positionZ = z;
-
+	
     //         TTT
     //      m       m
     //     m    M    m
@@ -940,7 +942,7 @@ void bot_ai::SetBotCommandState(uint8 st, bool force, Position* newpos)
             me->SetStandState(UNIT_STAND_STATE_STAND);
         if (IsShootingWand())
             me->InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
-        me->GetMotionMaster()->MovePoint(master->GetMapId(), pos);
+		me->GetMotionMaster()->MovePoint(master->GetMapId(), pos);
         //me->GetMotionMaster()->MoveFollow(master, mydist, angle);
         RemoveBotCommandState(BOT_COMMAND_STAY | BOT_COMMAND_FULLSTOP | BOT_COMMAND_ATTACK | BOT_COMMAND_COMBATRESET);
     }
