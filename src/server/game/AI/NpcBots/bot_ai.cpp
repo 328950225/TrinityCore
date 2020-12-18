@@ -3761,8 +3761,7 @@ void bot_ai::_updateMountedState()
                      
 				}
                 srand((unsigned)time(NULL)+me->GetMaxHealth());
-				int num = rand() % (spellCount); 
-				doCast(me, point[num]);
+				int num = rand() % (spellCount);
                 mount = point[num]; 
 				if(mount)
 				   doCast(me, mount);
